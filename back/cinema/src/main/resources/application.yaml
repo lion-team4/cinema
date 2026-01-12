@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: cinema
+  datasource:
+    url: jdbc:mysql://localhost:13306/cinema-db
+    username: root
+    password: 1111
+
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
