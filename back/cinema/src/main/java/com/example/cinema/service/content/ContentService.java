@@ -5,13 +5,14 @@ import com.example.cinema.dto.content.*;
 
 public interface ContentService {
 
-    ContentResponseDto createContent(ContentRequestDto requestDto, String ownerName);
+    ContentResponseDto createContent(ContentRequestDto requestDto, String email);
 
-    ContentResponseDto addAssetsContent(ContentAssetAttachRequest assetAttachRequest, String ownerName, Long contentId);
+    ContentResponseDto addAssetsContent(ContentAssetAttachRequest assetAttachRequest, String email, Long contentId);
 
-    ContentEditResponseDto getEditContent(String ownerName, Long contentId);
+    ContentEditResponseDto getEditContent(String email, Long contentId);
 
-    ContentEditResponseDto updateContent(String ownerName, Long contentId, ContentUpdateRequestDto updateRequestDto);
+    ContentEditResponseDto updateContent(String email, Long contentId, ContentUpdateRequestDto updateRequestDto);
 
+    void deleteContent(String email, Long contentId);
 
 }
