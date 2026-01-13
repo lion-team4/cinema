@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 
-@RestController("/api")
+@RestController("/content")
 @RequiredArgsConstructor
 public class ContentController {
     public final ContentService contentService;
 
 
     //1차등록
-    @PostMapping("/contents")
+    @PostMapping
     public ResponseEntity<ContentResponseDto> createContent(
             @Valid  @RequestBody ContentRequestDto contentDto,
             Principal principal){
@@ -33,7 +33,7 @@ public class ContentController {
 
     //2차등록
     // 2차등록이 끝나면 status만 보내도 되지 않을까요? 굳이 Dto를 보낼필요가 있을까?
-    @PatchMapping("/contents/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<ContentResponseDto> patchContent(
             @Valid @RequestBody ContentAssetAttachRequest assertDto,
             Principal principal,
