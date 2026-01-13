@@ -62,4 +62,11 @@ public class ContentController {
         ContentEditResponseDto responseDto = contentService.updateContent(email, contentId, request);
         return ResponseEntity.status(HttpStatus.OK).body(responseDto);
     }
+
+    @DeleteMapping("{contentId}")
+    public ResponseEntity<Void> deleteContent(@PathVariable Long contentId, Principal principal) {
+        String email = principal.getName();
+        contentService.deleteContent(email, contentId);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
 }

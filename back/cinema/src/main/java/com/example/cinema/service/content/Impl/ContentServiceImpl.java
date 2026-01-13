@@ -109,4 +109,20 @@ public class ContentServiceImpl implements ContentService {
 
         return ContentEditResponseDto.from(content);
     }
+
+    @Override
+    public void deleteContent(String email, Long contentId) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(()-> new IllegalArgumentException("해당 유저가 존재하지 않습니다"));
+
+        Content content = contentRepository.findById(contentId)
+                .orElseThrow(()-> new IllegalArgumentException("해당 영화가 존재하지 않습니다."));
+
+        //유저 권한 확인
+        if(!user.getUserId().equals(content.getOwner().getUserId())) {
+            throw new AccessDeniedException("접근권한이 없습니다");
+        }
+
+        contentRepository.deleteById(contentId);
+    }
 }
