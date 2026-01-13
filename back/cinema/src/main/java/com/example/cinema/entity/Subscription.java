@@ -48,8 +48,39 @@ public class Subscription extends BaseEntity {
     @JoinColumn(name = "billing_key_id")
     private BillingKey billingKey;
 
-    public void cancel() {
+    public void cancel() { //구독 소
         this.isActive = false;
         this.status = SubscriptionStatus.CANCELED;
+    }
+
+    public void renew(){ //구독 재개
+        this.isActive = true;
+        this.status = SubscriptionStatus.ACTIVE;
+    }
+    
+    public void expire(){ //구독 만료 or 결제 전 or 결제 실패
+        this.isActive = false;
+        this.status = SubscriptionStatus.EXPIRED;
+    }
+
+    public void updateBullingKey(BillingKey newBillingKey){
+        this.billingKey = newBillingKey;
+    }
+
+    public void extensionPeriod(){
+        currentPeriodStart = LocalDateTime.now();
+        currentPeriodEnd = LocalDateTime.now().plusMonths(1);
+    }
+
+    // 구독 생성
+    public static Subscription create(User user, BillingKey billingKey){
+        return Subscription.builder()
+                .subscriber(user)
+                .status(SubscriptionStatus.ACTIVE)
+                .isActive(true)
+                .currentPeriodStart(LocalDateTime.now())
+                .currentPeriodEnd(LocalDateTime.now().plusMonths(1))
+                .billingKey(billingKey)
+                .build();
     }
 }
