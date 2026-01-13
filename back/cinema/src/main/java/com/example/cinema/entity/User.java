@@ -42,4 +42,13 @@ public class User extends BaseEntity {
     public void withdraw() {
         this.deletedAt = LocalDateTime.now();
     }
+
+    public void updateProfile(String nickname, MediaAsset profileImage) {
+        if (nickname != null) {
+            this.nickname = nickname;
+        }
+        if (profileImage != null) {
+            this.profileImage = profileImage;
+        }
+    }
 }
