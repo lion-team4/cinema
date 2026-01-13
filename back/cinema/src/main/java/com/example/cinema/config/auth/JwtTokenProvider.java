@@ -26,6 +26,7 @@ public class JwtTokenProvider {
     private final CustomUserDetailsService customUserDetailsService;
     private static final String AUTHORITIES_KEY = "auth";
     private static final long ACCESS_TOKEN_EXPIRE_TIME = 1000 * 60 * 30; // 30 mins
+    private static final long REFRESH_TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 24 * 7; // 7 days
 
     public JwtTokenProvider(@Value("${jwt.secret}") String secretKey, CustomUserDetailsService customUserDetailsService) {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
@@ -34,17 +35,25 @@ public class JwtTokenProvider {
     }
 
     public String generateToken(Authentication authentication) {
+        return generateToken(authentication, ACCESS_TOKEN_EXPIRE_TIME);
+    }
+
+    public String generateRefreshToken(Authentication authentication) {
+        return generateToken(authentication, REFRESH_TOKEN_EXPIRE_TIME);
+    }
+
+    private String generateToken(Authentication authentication, long expireTime) {
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
 
         long now = (new Date()).getTime();
-        Date accessTokenExpiresIn = new Date(now + ACCESS_TOKEN_EXPIRE_TIME);
+        Date expiresIn = new Date(now + expireTime);
 
         return Jwts.builder()
                 .setSubject(authentication.getName())
                 .claim(AUTHORITIES_KEY, authorities)
-                .setExpiration(accessTokenExpiresIn)
+                .setExpiration(expiresIn)
                 .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
     }
