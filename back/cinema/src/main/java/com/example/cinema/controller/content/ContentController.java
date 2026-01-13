@@ -66,6 +66,6 @@ public class ContentController {
     public ResponseEntity<Void> deleteContent(@PathVariable Long contentId, Principal principal) {
         String email = principal.getName();
         contentService.deleteContent(email, contentId);
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }
