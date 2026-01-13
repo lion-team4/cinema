@@ -30,6 +30,7 @@
 
 - `DELETE users/subscriptions`
   - 유저 구독 해지
+---
 
 ---
 
@@ -137,6 +138,7 @@
 | asc         | bool            | asc / desc             |
 
 
+
 - `GET users/{nick}/contents`
   - 특정 유저의 영상 목록 조회
   - **Response**: `PageResponse<ContentSearchResponse>`
@@ -168,4 +170,5 @@
 
 - `GET contents/reviews/search/{content-id}`
   - 리뷰 조회
+
   - **Response**: `PageResponse<ReviewListResponse>`
