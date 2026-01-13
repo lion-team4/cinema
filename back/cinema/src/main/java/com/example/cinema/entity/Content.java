@@ -1,5 +1,6 @@
 package com.example.cinema.entity;
 
+import com.example.cinema.dto.content.ContentRequestDto;
 import com.example.cinema.entity.common.BaseEntity;
 import com.example.cinema.type.ContentStatus;
 import jakarta.persistence.*;
@@ -53,5 +54,24 @@ public class Content extends BaseEntity {
     private Long monthView = 0L;
 
 
+    // 필수 값만 가져와서 영화등록
+    public Content(User owner, String title, String description) {
+        this.owner = owner;
+        this.title = title;
+        this.description = description;
+        this.status = (status==null) ? ContentStatus.DRAFT : status;
+    }
 
+    public void updateInfo(String title, String description, ContentStatus status) {
+        this.title = title;
+        this.description = description;
+        this.status = status;
+    }
+
+    // assets를 가져와서 추가 등록
+    public void attachAssets(MediaAsset poster, MediaAsset videoSource, MediaAsset videoHlsMaster) {
+        if (poster != null) this.poster = poster;
+        if (videoSource != null) this.videoSource = videoSource;
+        if (videoHlsMaster != null) this.videoHlsMaster = videoHlsMaster;
+    }
 }
