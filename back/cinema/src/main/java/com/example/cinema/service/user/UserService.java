@@ -29,6 +29,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private final com.example.cinema.repository.auth.RefreshTokenRepository refreshTokenRepository;
 
     public UserGetResponse getProfile(Long userId) {
         User user = userRepository.findById(userId)
@@ -78,18 +79,64 @@ public class UserService {
         return UserGetResponse.from(userRepository.save(user));
     }
 
+    @Transactional
     public TokenResponse login(LoginRequest request) {
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword());
 
         Authentication authentication = authenticationManager.authenticate(authenticationToken);
 
-        String jwt = jwtTokenProvider.generateToken(authentication);
+        String accessToken = jwtTokenProvider.generateToken(authentication);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(authentication);
+
+        refreshTokenRepository.save(com.example.cinema.entity.RefreshToken.builder()
+                .key(authentication.getName())
+                .value(refreshToken)
+                .build());
 
         return TokenResponse.builder()
-                .accessToken(jwt)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .build();
+    }
+
+    @Transactional
+    public TokenResponse reissue(com.example.cinema.dto.auth.TokenRefreshRequest request) {
+        // 1. Refresh Token 검증
+        if (!jwtTokenProvider.validateToken(request.getRefreshToken())) {
+            throw new RuntimeException("Refresh Token이 유효하지 않습니다.");
+        }
+
+        // 2. Access Token 에서 User ID 가져오기
+        Authentication authentication = jwtTokenProvider.getAuthentication(request.getAccessToken());
+
+        // 3. 저장소에서 User ID 를 기반으로 Refresh Token 값 가져옴
+        com.example.cinema.entity.RefreshToken refreshToken = refreshTokenRepository.findByKey(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("로그아웃 된 사용자입니다."));
+
+        // 4. Refresh Token 일치하는지 검사
+        if (!refreshToken.getValue().equals(request.getRefreshToken())) {
+            throw new RuntimeException("토큰의 유저 정보가 일치하지 않습니다.");
+        }
+
+        // 5. 새로운 토큰 생성
+        String newAccessToken = jwtTokenProvider.generateToken(authentication);
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
+
+        // 6. 저장소 정보 업데이트
+        refreshToken.updateValue(newRefreshToken);
+
+        return TokenResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .tokenType("Bearer")
+                .build();
+    }
+
+    @Transactional
+    public void logout(String username) {
+        refreshTokenRepository.deleteById(username);
     }
 
     @Transactional
