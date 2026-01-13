@@ -12,9 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-@Table(name = "subscriptions", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"subscriber_user_id", "creator_user_id"})
-})
+@Table(name = "subscriptions") // 유저의 서비스(플랫폼) 구독 정보
 public class Subscription extends BaseEntity {
 
     @Id
@@ -22,21 +20,23 @@ public class Subscription extends BaseEntity {
     @Column(name = "subscription_id")
     private Long subscriptionId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subscriber_user_id", nullable = false)
     private User subscriber;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "creator_user_id", nullable = false)
-    private User creator;
+    @Builder.Default
+    private String name = "기본요금제";
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "plan_id")
-    private SubscriptionPlan plan;
+    @Builder.Default
+    private Long price = 10000L;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SubscriptionStatus status;
+
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
 
     @Column(name = "current_period_start")
     private LocalDateTime currentPeriodStart;

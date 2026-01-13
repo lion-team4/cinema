@@ -3,68 +3,68 @@
 ## 1. Project Overview
 **Name:** Cinema
 **Description:** A Spring Boot-based backend application for a cinema/video streaming platform.
-**Current Status (As of 2026-01-13):**
-*   **Entities:** Core entities implemented matching `ENTITY.md`.
-*   **DTOs:** Request/Response DTOs are largely implemented in `src/main/java/com/example/cinema/dto`.
-*   **Infrastructure:** Database connection and basic Config (`QueryDsl`, `TossPayment`) are set up.
-*   **Critical Missing Components:**
-    *   **Security:** No `SecurityConfig`, JWT utilities, or Authentication filters.
-    *   **Layers:** `Repository`, `Service`, and `Controller` packages are **empty**.
-    *   **Business Logic:** No features (User, Content, Schedule) are actually functional yet.
+**Last Updated:** 2026-01-13 (Tuesday)
 
-**Key Features (Planned):**
-*   **User Management:** Authentication (JWT), Profiles.
-*   **Content Management:** Video uploads (S3), HLS streaming, Metadata.
-*   **Cinema Scheduling:** Managing screening schedules (Coming Up, Happening Now).
-*   **Interactive Features:** Reviews, Watch History, Live Theater Entry/Exit.
-*   **Monetization:** Subscriptions, Payments (Toss), and Creator Settlements.
+**Current Status:**
+*   **Entities:** Core entities implemented. **`Payment` is Toss-compliant.**
+    *   *Action Required:* `Settlement` (Account info missing), `WatchHistory` (Duration missing).
+*   **DTOs:** Request/Response DTOs largely implemented in `src/main/java/com/example/cinema/dto`.
+*   **Infrastructure:** Database connection, `QueryDslConfig`, `TossPaymentConfig` set up.
+*   **Security:** `spring-boot-starter-security` present, but **JWT libraries (jjwt) missing** in `build.gradle`. `SecurityConfig` and Auth Logic not implemented.
+*   **Layers:** Repository, Service, Controller layers are currently **Empty**.
 
 ## 2. Technical Stack
 *   **Language:** Java 21
 *   **Framework:** Spring Boot 3.5.9
 *   **Build Tool:** Gradle
-*   **Database:** MySQL (configured as `cinema-db` on `localhost:13306`)
-*   **ORM:** Spring Data JPA + Hibernate (`ddl-auto: update`)
-*   **Query Framework:** QueryDSL 5.0.0
-*   **API Documentation:** SpringDoc OpenAPI (Swagger) v2.8.6
-*   **Key Libraries:**
-    *   `spring-boot-starter-web`
-    *   `spring-boot-starter-security`
-    *   `spring-boot-starter-batch`
-    *   `spring-boot-starter-validation`
-    *   `lombok`
+*   **Database:** MySQL (`cinema-db`)
+*   **ORM:** JPA + Hibernate (`ddl-auto: update`)
+*   **Query:** QueryDSL 5.0.0
+*   **Docs:** SpringDoc OpenAPI (Swagger) v2.8.6
+*   **Key Dependencies:**
+    *   `spring-boot-starter-web`, `security`, `batch`, `validation`, `lombok`
+    *   **MISSING:** `io.jsonwebtoken:jjwt-api` (and impl/jackson)
 
-## 3. Project Structure
+## 3. Project Structure & Status
 `src/main/java/com/example/cinema`:
-*   `CinemaApplication.java`
-*   `entity/`: **Implemented**. (`User`, `Content`, `Schedule`, `Subscription`, etc.)
-*   `dto/`: **Implemented**. (`ContentSearchRequest`, `UserDetailResponse`, etc.)
-*   `type/`: **Implemented**. Enums for status/types.
-*   `config/`: `QueryDslConfig`, `TossPaymentConfig`. **Missing:** `SecurityConfig`.
-*   `repository/`: **Empty**.
-*   `service/`: **Empty**.
-*   `controller/`: **Empty**.
-*   `security/`: **Missing**. (Need `JwtTokenProvider`, `SecurityConfig`, `CustomUserDetailService`).
+*   `entity/`: **Implemented (90%)**
+    *   `Payment`: ✅ Toss PG fields (`orderId`, `failReason`) added.
+    *   `BillingKey`: ✅ ready.
+    *   `Settlement`: ⚠️ Needs Bank Account info.
+    *   `WatchHistory`: ⚠️ Needs `exitedAt` or `duration`.
+*   `dto/`: **Implemented** (Structure ready)
+*   `config/`: `QueryDslConfig`, `TossPaymentConfig` ✅.
+*   `repository/`: **Empty** (Next Step)
+*   `service/`: **Empty**
+*   `controller/`: **Empty**
+*   `security/`: **Empty** (Critical)
 
-## 4. Documentation References
-*   **`ENTITY.md`**: **CRITICAL** - Detailed database schema and rules.
-*   **`DTO_PLAN.md`** & **`DTO_TODO.md`**: DTO planning docs.
-*   **`TOSS_PAYMENT_PLAN.md`**: Payment integration guide.
+## 4. Analysis & Action Items
 
-## 5. Analysis Report & Roadmap
-### Priority 1: Infrastructure & Security
-*   **Task:** Implement `SecurityConfig` and JWT infrastructure (`JwtTokenProvider`, `JwtAuthenticationFilter`).
-*   **Rationale:** "User Management" is the foundation for all other features (Content ownership, Subscriptions).
+### 🚨 Critical Gaps (Immediate Actions)
+1.  **Entity Completion**:
+    *   Create `SettlementAccount` entity (or add fields to `User`) for payouts.
+    *   Add `watchTime` or `exitedAt` to `WatchHistory` for "20% view" calculation.
+2.  **Dependencies**:
+    *   Add JWT libraries to `build.gradle`.
+3.  **Security Layer**:
+    *   Implement `JwtTokenProvider`, `JwtAuthenticationFilter`, `SecurityConfig`.
 
-### Priority 2: Data Access Layer (Repository)
-*   **Task:** Create Repository interfaces for all entities (`UserRepository`, `ContentRepository`, etc.).
-*   **Task:** Implement `CustomRepository` interfaces for QueryDSL queries (e.g., `ContentRepositoryCustom`).
+### 📅 Implementation Roadmap
+1.  **Phase 1: Foundation (Current)**
+    *   [x] Basic Entity Design
+    *   [ ] Fix Entity Gaps (`Settlement`, `WatchHistory`)
+    *   [ ] Repository Layer Implementation (JPA + QueryDSL)
 
-### Priority 3: Business Logic (Service)
-*   **Task:** Implement `UserService` (Signup, Login, Profile).
-*   **Task:** Implement `ContentService` (Upload, List, Detail).
-*   **Task:** Implement `ScheduleService` (Manage schedules).
+2.  **Phase 2: Core Logic (Security & User)**
+    *   [ ] Security Configuration (JWT)
+    *   [ ] User Service (Sign-up, Login, Profile)
 
-### Priority 4: API Layer (Controller)
-*   **Task:** Create REST Controllers using standard `ApiResponse` wrapper.
-*   **Task:** Verify with Swagger UI.
+3.  **Phase 3: Features**
+    *   [ ] Content Service (Upload, Manage)
+    *   [ ] Schedule Service
+    *   [ ] Payment/Subscription (Toss Integration)
+
+4.  **Phase 4: Interface**
+    *   [ ] REST Controllers
+    *   [ ] Swagger Verification

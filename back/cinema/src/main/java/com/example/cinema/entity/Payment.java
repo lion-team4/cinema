@@ -30,6 +30,18 @@ public class Payment extends BaseEntity {
     @Column(nullable = false)
     private Long amount;
 
+    // [추가 1] 토스 API 요청 필수값 (주문 ID) - Unique Index 권장
+   @Column(name = "order_id", nullable = false, unique = true)
+   private String orderId;
+
+    // [추가 2] 토스 API 요청 필수값 (주문명) - 예: "베이직 요금제 정기결제"
+   @Column(name = "order_name", nullable = false)
+   private String orderName;
+
+    // [추가 3] 결제 실패 시 토스 응답 객체(failure)의 message 저장용
+   @Column(name = "fail_reason")
+   private String failReason;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status;

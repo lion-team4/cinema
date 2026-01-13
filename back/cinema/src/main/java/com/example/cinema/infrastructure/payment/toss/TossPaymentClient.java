@@ -1,7 +1,7 @@
 package com.example.cinema.infrastructure.payment.toss;
 
-import com.example.cinema.dto.payment.toss.TossBillingResponse;
-import com.example.cinema.dto.payment.toss.TossPaymentResponse;
+import com.example.cinema.infrastructure.payment.toss.dto.TossBillingResponse;
+import com.example.cinema.infrastructure.payment.toss.dto.TossPaymentResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
