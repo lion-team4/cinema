@@ -1,8 +1,8 @@
 package com.example.cinema.service;
 
 
-import com.example.cinema.dto.ContentRequestDto;
-import com.example.cinema.dto.ContentResponseDto;
+import com.example.cinema.dto.content.ContentRequestDto;
+import com.example.cinema.dto.content.ContentResponseDto;
 
 public interface ContentService {
 
