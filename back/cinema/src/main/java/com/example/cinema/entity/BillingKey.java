@@ -21,9 +21,9 @@ public class BillingKey extends BaseEntity {
     @Column(name = "billing_key_id")
     private Long billingKeyId;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subscription_id", nullable = false)
-    private Subscription subscription;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -32,11 +32,23 @@ public class BillingKey extends BaseEntity {
     @Column(name = "billing_key", nullable = false, unique = true)
     private String billingKey;
 
-    @Column(name = "card_last4")
-    private String cardLast4;
+    @Column(name = "customer_key", nullable = false)
+    private String customerKey;
 
-    @Column(name = "card_brand")
-    private String cardBrand;
+    @Column(name = "card_number")
+    private String cardNumber;
+
+    @Column(name = "card_company")
+    private String cardCompany;
+
+    @Column(name = "card_type")
+    private String cardType;
+
+    @Column(name = "owner_type")
+    private String ownerType;
+
+    @Column(name = "authenticated_at")
+    private LocalDateTime authenticatedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
