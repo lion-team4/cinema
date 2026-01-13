@@ -23,29 +23,49 @@ public class TossPaymentClient {
      * @param customerKey 고객 식별 키
      */
     public TossBillingResponse issueBillingKey(String authKey, String customerKey) {
-        return tossRestClient.post()
-                .uri("/billing/authorizations/issue")
-                .body(Map.of(
-                        "authKey", authKey,
-                        "customerKey", customerKey
-                ))
-                .retrieve()
-                .body(TossBillingResponse.class);
+        try {
+            return tossRestClient.post()
+                    .uri("/billing/authorizations/issue")
+                    .body(Map.of(
+                            "authKey", authKey,
+                            "customerKey", customerKey
+                    ))
+                    .retrieve()
+                    .body(TossBillingResponse.class);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 401) {
+                throw new RuntimeException("토스페이먼츠 API 인증 실패: secret-key가 올바르지 않거나 만료되었습니다. application.yaml의 toss.secret-key를 확인해주세요.", e);
+            } else if (e.getStatusCode().value() == 404) {
+                throw new RuntimeException("토스페이먼츠 API 호출 실패: authKey가 유효하지 않거나 만료되었습니다. 카드 등록을 다시 시도해주세요. (404 Not Found)", e);
+            }
+            throw new RuntimeException("토스페이먼츠 API 호출 실패: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new RuntimeException("토스페이먼츠 API 호출 중 오류 발생: " + e.getMessage(), e);
+        }
     }
 
     /**
      * 자동 결제(빌링) 승인 요청
      */
     public TossPaymentResponse requestPayment(String billingKey, String customerKey, String orderId, String orderName, Long amount) {
-        return tossRestClient.post()
-                .uri("/billing/" + billingKey)
-                .body(Map.of(
-                        "customerKey", customerKey,
-                        "orderId", orderId,
-                        "orderName", orderName,
-                        "amount", amount
-                ))
-                .retrieve()
-                .body(TossPaymentResponse.class);
+        try {
+            return tossRestClient.post()
+                    .uri("/billing/" + billingKey)
+                    .body(Map.of(
+                            "customerKey", customerKey,
+                            "orderId", orderId,
+                            "orderName", orderName,
+                            "amount", amount
+                    ))
+                    .retrieve()
+                    .body(TossPaymentResponse.class);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 401) {
+                throw new RuntimeException("토스페이먼츠 API 인증 실패: secret-key가 올바르지 않거나 만료되었습니다. application.yaml의 toss.secret-key를 확인해주세요.", e);
+            }
+            throw new RuntimeException("토스페이먼츠 API 호출 실패: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new RuntimeException("토스페이먼츠 API 호출 중 오류 발생: " + e.getMessage(), e);
+        }
     }
 }

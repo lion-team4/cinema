@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-@Table(name = "subscriptions") // 유저의 서비스(플랫폼) 구독 정보
+@Table(name = "subscriptions")
 public class Subscription extends BaseEntity {
 
     @Id
@@ -21,7 +21,7 @@ public class Subscription extends BaseEntity {
     private Long subscriptionId;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subscriber_user_id", nullable = false)
+    @JoinColumn(name = "subscriber_user_id", nullable = false, unique = true)
     private User subscriber;
 
     @Builder.Default

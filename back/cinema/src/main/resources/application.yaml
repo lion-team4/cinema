@@ -28,8 +28,4 @@ toss:
   url: "https://api.tosspayments.com/v1"
 
 jwt:
-  # HS512 알고리즘을 사용하기 위해 64byte(512bit) 이상의 Base64 인코딩된 시크릿 키가 필요합니다.
-  secret: "dGhpcy1pcy1hLXZlcnktc3Ryb25nLXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1nZW5lcmF0aW9uLXdpdGgtc3ByaW5nLWJvb3Q="
-
-server:
-  port: 8081
+  secret: VGhpc0lzQVZlcnlMb25nU2VjcmV0S2V5Rm9yVGhlQ2luZW1hQXBwbGljYXRpb25UaGF0SXNEZWZpbml0ZWx5TW9yZVRoYW41MTJCaXRzQW5kU2hvdWxkQmVTZWN1cmVFbm91Z2hGb3JIUzUxMkFsZ29yaXRobUNoZWNr

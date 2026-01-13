@@ -14,13 +14,17 @@ import lombok.NoArgsConstructor;
  * - 단일 플랜만 제공하므로 planId는 불필요
  */
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class SubscriptionCreateRequest {
-
 
     /**
      * PG사(프론트엔드 SDK)로부터 발급받은 1회성 인증 키
      */
     @NotBlank(message = "Auth key is required")
     private String authKey;
+    
+    // TestController에서 사용하기 위한 setter
+    public void setAuthKey(String authKey) {
+        this.authKey = authKey;
+    }
 }
