@@ -12,7 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 
-@RestController("/content")
+@RestController
+@RequestMapping("/contents")
 @RequiredArgsConstructor
 public class ContentController {
     public final ContentService contentService;
@@ -20,35 +21,34 @@ public class ContentController {
 
     //1차등록
     @PostMapping
-    public ResponseEntity<ContentResponseDto> createContent(
-            @Valid  @RequestBody ContentRequestDto contentDto,
-            Principal principal){
+    public ResponseEntity<ContentResponseDto> createContent(@Valid  @RequestBody ContentRequestDto contentDto,
+                                                    Principal principal){
 
-        String ownerName = principal.getName();
+        String email = principal.getName();
         ContentResponseDto contentResponseDto =
-                contentService.createContent(contentDto, ownerName);
+                contentService.createContent(contentDto, email);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(contentResponseDto);
     }
 
     //2차등록
     // 2차등록이 끝나면 status만 보내도 되지 않을까요? 굳이 Dto를 보낼필요가 있을까?
-    @PatchMapping("/{id}")
-    public ResponseEntity<ContentResponseDto> patchContent(
-            @Valid @RequestBody ContentAssetAttachRequest assertDto,
-            Principal principal,
-            @PathVariable Long id){
-        String ownerName = principal.getName();
-        contentService.addAssetsContent(assertDto, ownerName, id);
+    @PatchMapping("/{contentId}")
+    public ResponseEntity<ContentResponseDto> patchContent( @Valid @RequestBody ContentAssetAttachRequest assertDto,
+                                                    Principal principal,
+                                                    @PathVariable Long contentId){
 
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        String email = principal.getName();
+        ContentResponseDto contentResponseDto = contentService.addAssetsContent(assertDto, email, contentId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(contentResponseDto);
     }
 
     @GetMapping("/{contentId}/edit")
     public ResponseEntity<ContentEditResponseDto> getEditForm(@PathVariable Long contentId,
                                                        Principal principal) {
-        String ownerName = principal.getName();
-        ContentEditResponseDto responseDto = contentService.getEditContent(ownerName, contentId);
+        String email = principal.getName();
+        ContentEditResponseDto responseDto = contentService.getEditContent(email, contentId);
         return ResponseEntity.status(HttpStatus.OK).body(responseDto);
     }
 
@@ -57,8 +57,8 @@ public class ContentController {
                                                          @Valid @RequestBody ContentUpdateRequestDto request,
                                                          Principal principal) {
 
-        String ownerName = principal.getName();
-        ContentEditResponseDto responseDto = contentService.updateContent(ownerName, contentId, request);
-        return ResponseEntity.status(HttpStatus.OK).build();
+        String email = principal.getName();
+        ContentEditResponseDto responseDto = contentService.updateContent(email, contentId, request);
+        return ResponseEntity.status(HttpStatus.OK).body(responseDto);
     }
 }
