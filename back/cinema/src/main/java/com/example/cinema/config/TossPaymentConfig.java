@@ -13,11 +13,12 @@ import java.util.Base64;
 @Configuration
 public class TossPaymentConfig {
 
+
     @Value("${toss.secret-key}")
     private String secretKey;
 
     @Value("${toss.url}")
-    private String baseUrl;
+    private String url;
 
     @Bean
     public RestClient tossRestClient() {
@@ -25,7 +26,7 @@ public class TossPaymentConfig {
         String encodedKey = Base64.getEncoder().encodeToString((secretKey + ":").getBytes());
 
         return RestClient.builder()
-                .baseUrl(baseUrl)
+                .baseUrl(url)
                 .defaultHeader("Authorization", "Basic " + encodedKey)
                 .defaultHeader("Content-Type", "application/json")
                 .build();
