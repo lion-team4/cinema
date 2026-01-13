@@ -55,4 +55,7 @@ public class User extends BaseEntity {
             this.profileImage = profileImage;
         }
     }
+    public String getCustomerKey(){
+        return "CUSTOMER_" + this.userId;
+    }
 }
