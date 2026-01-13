@@ -23,9 +23,9 @@ public class ContentServiceImpl implements ContentService {
 
     @Override
     @Transactional
-    public ContentResponseDto createContent(ContentRequestDto requestDto, String ownerName) {
+    public ContentResponseDto createContent(ContentRequestDto requestDto, String email) {
 
-        User user = userRepository.findByNickname(ownerName)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         //유저 권한 확인
@@ -53,7 +53,7 @@ public class ContentServiceImpl implements ContentService {
                 .orElseThrow(() -> new NoSuchElementException("영화가 제대로 등록되지 않았습니다."));
 
         //MediaAsset 을 dto에서 추출
-
+        ContentResponseDto responseDto = ContentResponseDto.from(content);
 
         //MediaAsset을 content에 등록
 //        ContentResponseDto responseDto = new ContentResponseDto(content.attachAssets());
@@ -61,14 +61,14 @@ public class ContentServiceImpl implements ContentService {
         //mediaAsset이 null인지 검증 로직
 
 
-        return ;
+        return responseDto;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ContentEditResponseDto getEditContent(String ownerName, Long contentId) {
+    public ContentEditResponseDto getEditContent(String email, Long contentId) {
 
-        User user = userRepository.findByNickname(ownerName)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(()-> new IllegalArgumentException("해당 유저가 존재하지 않습니다"));
 
         Content content = contentRepository.findById(contentId)
@@ -84,10 +84,10 @@ public class ContentServiceImpl implements ContentService {
 
     @Override
     @Transactional
-    public ContentEditResponseDto updateContent(String ownerName,
+    public ContentEditResponseDto updateContent(String email,
                                                 Long contentId,
                                                 ContentUpdateRequestDto updateRequestDto) {
-        User user = userRepository.findByNickname(ownerName)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(()-> new IllegalArgumentException("해당 유저가 존재하지 않습니다"));
 
         Content content = contentRepository.findById(contentId)
