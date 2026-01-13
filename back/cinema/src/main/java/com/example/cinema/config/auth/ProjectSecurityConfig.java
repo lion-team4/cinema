@@ -62,7 +62,9 @@ public class ProjectSecurityConfig {
                         // 테스트 페이지
                         .requestMatchers(
                                 "/subscription-test",
-                                "/subscription-test.html"
+                                "/subscription-test.html",
+                                "/test/**",
+                                "/api/test/**"
                         ).permitAll()
 
                         /* ==================================================

@@ -47,4 +47,9 @@ public class Subscription extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "billing_key_id")
     private BillingKey billingKey;
+
+    public void cancel() {
+        this.isActive = false;
+        this.status = SubscriptionStatus.CANCELED;
+    }
 }
