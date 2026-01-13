@@ -65,6 +65,7 @@ public class Content extends BaseEntity {
     public void resetMonthView() {
         this.monthView = 0L;
     }
+
     /**
      * 조회수 증가 (totalView와 monthView 모두 증가)
      */
