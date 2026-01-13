@@ -57,7 +57,7 @@ public class AuthController {
         if (auth != null && auth.isAuthenticated()) {
             // DB에서 Refresh Token 삭제
             userService.logout(auth.getName());
-            
+
             // Security Context 초기화
             new SecurityContextLogoutHandler().logout(request, response, auth);
         }
