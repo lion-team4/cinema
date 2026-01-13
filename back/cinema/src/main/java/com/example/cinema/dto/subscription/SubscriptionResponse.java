@@ -9,17 +9,16 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 /**
- * 구독 목록 응답 DTO
+ * 구독 정보 응답 DTO
  * <p>
  * 용도:
- * - 내 구독 내역 조회 (GET /users/subscriptions)
+ * - 내 구독 정보 조회 (GET /users/subscription)
  * - 결제 상태 및 다음 결제일 확인
  */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class SubscriptionListResponse {
+public class SubscriptionResponse {
     private final Long subscriptionId;
-    private final String creatorNickname;
     private final String planName;
     private final Long price;
     private final SubscriptionStatus status;
@@ -28,12 +27,11 @@ public class SubscriptionListResponse {
      */
     private final LocalDateTime nextPaymentDate;
 
-    public static SubscriptionListResponse from(Subscription subscription) {
-        return new SubscriptionListResponse(
+    public static SubscriptionResponse from(Subscription subscription) {
+        return new SubscriptionResponse(
                 subscription.getSubscriptionId(),
-                subscription.getCreator().getNickname(),
-                subscription.getPlan().getName(),
-                subscription.getPlan().getPrice(),
+                subscription.getName(),
+                subscription.getPrice(),
                 subscription.getStatus(),
                 subscription.getCurrentPeriodEnd()
         );

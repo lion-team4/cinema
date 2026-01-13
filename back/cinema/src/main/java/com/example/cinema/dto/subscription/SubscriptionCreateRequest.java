@@ -1,5 +1,6 @@
 package com.example.cinema.dto.subscription;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
@@ -17,16 +18,11 @@ import lombok.NoArgsConstructor;
 public class SubscriptionCreateRequest {
 
     /**
-     * 구독할 크리에이터 ID
+     * 구독 하는 유저
      */
     @NotNull(message = "Creator ID is required")
-    private Long creatorId;
-
-    /**
-     * 구독 플랜 ID
-     */
-    @NotNull(message = "Plan ID is required")
-    private Long planId;
+    @JsonProperty("user-id")
+    private Long userId;
 
     /**
      * PG사(프론트엔드 SDK)로부터 발급받은 1회성 인증 키

@@ -1,4 +1,4 @@
-package com.example.cinema.dto.payment.toss;
+package com.example.cinema.infrastructure.payment.toss.dto;
 
 import lombok.Data;
 import lombok.Getter;
