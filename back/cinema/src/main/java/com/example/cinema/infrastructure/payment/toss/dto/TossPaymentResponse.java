@@ -32,6 +32,7 @@ public class TossPaymentResponse {
     private Long taxFreeAmount;
     private String method;
     private String version;
+    private Failure failure; // 결제 실패 정보
 
     @Data
     public static class Card {
@@ -56,6 +57,12 @@ public class TossPaymentResponse {
     @Data
     public static class Checkout {
         private String url;
+    }
+
+    @Data
+    public static class Failure {
+        private String code;
+        private String message;
     }
 
 }
