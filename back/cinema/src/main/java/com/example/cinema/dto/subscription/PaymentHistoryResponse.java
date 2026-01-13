@@ -8,6 +8,12 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
+/**
+ * 결제 내역 응답 DTO
+ * <p>
+ * 용도:
+ * - 유저 구독 결제 기록 조회 (GET /users/subscriptions)
+ */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class PaymentHistoryResponse {
