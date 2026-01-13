@@ -5,9 +5,9 @@ import com.example.cinema.dto.common.ApiResponse;
 import com.example.cinema.dto.common.PageResponse;
 import com.example.cinema.dto.subscription.PaymentHistoryResponse;
 import com.example.cinema.dto.subscription.SubscriptionCreateRequest;
-import com.example.cinema.dto.subscription.SubscriptionListResponse;
+import com.example.cinema.dto.subscription.SubscriptionResponse;
 import com.example.cinema.dto.subscription.SubscriptionUpdateBillingRequest;
-import com.example.cinema.service.SubscriptionService;
+import com.example.cinema.service.subscription.SubscriptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -33,11 +33,11 @@ public class SubscriptionController {
      * POST /api/users/subscriptions
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<SubscriptionListResponse>> createSubscription(
+    public ResponseEntity<ApiResponse<SubscriptionResponse>> createSubscription(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody SubscriptionCreateRequest request
     ) {
-        SubscriptionListResponse response = subscriptionService.createSubscription(
+        SubscriptionResponse response = subscriptionService.createSubscription(
                 userDetails.getUser().getUserId(),
                 request
         );
@@ -50,10 +50,10 @@ public class SubscriptionController {
      * GET /api/users/subscriptions
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<SubscriptionListResponse>> getMySubscription(
+    public ResponseEntity<ApiResponse<SubscriptionResponse>> getMySubscription(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        SubscriptionListResponse response = subscriptionService.getMySubscription(
+        SubscriptionResponse response = subscriptionService.getMySubscription(
                 userDetails.getUser().getUserId()
         );
         return ResponseEntity.ok(ApiResponse.success("구독 정보를 조회했습니다.", response));
@@ -86,11 +86,11 @@ public class SubscriptionController {
      * PUT /api/users/subscriptions
      */
     @PutMapping
-    public ResponseEntity<ApiResponse<SubscriptionListResponse>> updateBillingKey(
+    public ResponseEntity<ApiResponse<SubscriptionResponse>> updateBillingKey(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody SubscriptionUpdateBillingRequest request
     ) {
-        SubscriptionListResponse response = subscriptionService.updateBillingKey(
+        SubscriptionResponse response = subscriptionService.updateBillingKey(
                 userDetails.getUser().getUserId(),
                 request
         );

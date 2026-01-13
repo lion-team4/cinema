@@ -1,11 +1,11 @@
-package com.example.cinema.service.Impl;
+package com.example.cinema.service.subscription;
 
 import com.example.cinema.dto.common.PageResponse;
-import com.example.cinema.dto.payment.toss.TossBillingResponse;
-import com.example.cinema.dto.payment.toss.TossPaymentResponse;
+import com.example.cinema.infrastructure.payment.toss.dto.TossBillingResponse;
+import com.example.cinema.infrastructure.payment.toss.dto.TossPaymentResponse;
 import com.example.cinema.dto.subscription.PaymentHistoryResponse;
 import com.example.cinema.dto.subscription.SubscriptionCreateRequest;
-import com.example.cinema.dto.subscription.SubscriptionListResponse;
+import com.example.cinema.dto.subscription.SubscriptionResponse;
 import com.example.cinema.dto.subscription.SubscriptionUpdateBillingRequest;
 import com.example.cinema.entity.BillingKey;
 import com.example.cinema.entity.Payment;
@@ -16,7 +16,6 @@ import com.example.cinema.repository.BillingKeyRepository;
 import com.example.cinema.repository.PaymentRepository;
 import com.example.cinema.repository.SubscriptionRepository;
 import com.example.cinema.repository.user.UserRepository;
-import com.example.cinema.service.SubscriptionService;
 import com.example.cinema.type.BillingKeyStatus;
 import com.example.cinema.type.BillingProvider;
 import com.example.cinema.type.PaymentStatus;
@@ -32,7 +31,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class SubscriptionServiceImpl implements SubscriptionService {
+public class SubscriptionService{
 
     private final SubscriptionRepository subscriptionRepository;
     private final BillingKeyRepository billingKeyRepository;
@@ -45,8 +44,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private static final Long DEFAULT_PLAN_PRICE = 10000L;
     private static final String DEFAULT_BILLING_CYCLE = "MONTHLY";
 
-    @Override
-    public SubscriptionListResponse createSubscription(Long userId, SubscriptionCreateRequest request) {
+
+    public SubscriptionResponse createSubscription(Long userId, SubscriptionCreateRequest request) {
         // 이미 구독 중인지 확인
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -86,9 +85,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         Subscription subscription = Subscription.builder()
                 .subscriber(user)
-                .planName(DEFAULT_PLAN_NAME)
+                .name(DEFAULT_PLAN_NAME)
                 .price(DEFAULT_PLAN_PRICE)
-                .billingCycle(DEFAULT_BILLING_CYCLE)
+                .isActive(true)
                 .status(SubscriptionStatus.ACTIVE)
                 .currentPeriodStart(now)
                 .currentPeriodEnd(periodEnd)
@@ -100,22 +99,22 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         // 초기 결제 처리
         processInitialPayment(subscription);
 
-        return SubscriptionListResponse.from(subscription);
+        return SubscriptionResponse.from(subscription);
     }
 
-    @Override
+
     @Transactional(readOnly = true)
-    public SubscriptionListResponse getMySubscription(Long userId) {
+    public SubscriptionResponse getMySubscription(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         Subscription subscription = subscriptionRepository.findBySubscriber(user)
                 .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
 
-        return SubscriptionListResponse.from(subscription);
+        return SubscriptionResponse.from(subscription);
     }
 
-    @Override
+
     @Transactional(readOnly = true)
     public PageResponse<PaymentHistoryResponse> getPaymentHistory(
             Long userId,
@@ -139,8 +138,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         );
     }
 
-    @Override
-    public SubscriptionListResponse updateBillingKey(Long userId, SubscriptionUpdateBillingRequest request) {
+
+    public SubscriptionResponse updateBillingKey(Long userId, SubscriptionUpdateBillingRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
@@ -196,9 +195,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscription = Subscription.builder()
                 .subscriptionId(subscription.getSubscriptionId())
                 .subscriber(subscription.getSubscriber())
-                .planName(subscription.getPlanName())
+                .name(subscription.getName())
                 .price(subscription.getPrice())
-                .billingCycle(subscription.getBillingCycle())
+                .isActive(true)
                 .status(subscription.getStatus())
                 .currentPeriodStart(subscription.getCurrentPeriodStart())
                 .currentPeriodEnd(subscription.getCurrentPeriodEnd())
@@ -207,10 +206,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         subscription = subscriptionRepository.save(subscription);
 
-        return SubscriptionListResponse.from(subscription);
+        return SubscriptionResponse.from(subscription);
     }
 
-    @Override
+
     public void cancelSubscription(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -221,9 +220,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscription = Subscription.builder()
                 .subscriptionId(subscription.getSubscriptionId())
                 .subscriber(subscription.getSubscriber())
-                .planName(subscription.getPlanName())
+                .name(subscription.getName())
                 .price(subscription.getPrice())
-                .billingCycle(subscription.getBillingCycle())
+                .isActive(false)
                 .status(SubscriptionStatus.CANCELED)
                 .currentPeriodStart(subscription.getCurrentPeriodStart())
                 .currentPeriodEnd(subscription.getCurrentPeriodEnd())
@@ -253,7 +252,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         }
     }
 
-    @Override
+
     public void processRecurringPayment(Subscription subscription) {
         if (subscription.getStatus() != SubscriptionStatus.ACTIVE) {
             return;
@@ -265,7 +264,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         // 정기 결제 처리
         String orderId = "ORDER_" + UUID.randomUUID().toString().replace("-", "");
-        String orderName = subscription.getPlanName() + " 정기결제";
+        String orderName = subscription.getName() + " 정기결제";
 
         TossPaymentResponse paymentResponse = tossPaymentClient.requestPayment(
                 subscription.getBillingKey().getBillingKey(),
@@ -296,9 +295,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             subscription = Subscription.builder()
                     .subscriptionId(subscription.getSubscriptionId())
                     .subscriber(subscription.getSubscriber())
-                    .planName(subscription.getPlanName())
+                    .name(subscription.getName())
                     .price(subscription.getPrice())
-                    .billingCycle(subscription.getBillingCycle())
+                    .isActive(true)
                     .status(SubscriptionStatus.ACTIVE)
                     .currentPeriodStart(now)
                     .currentPeriodEnd(now.plusMonths(1))
@@ -310,9 +309,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             subscription = Subscription.builder()
                     .subscriptionId(subscription.getSubscriptionId())
                     .subscriber(subscription.getSubscriber())
-                    .planName(subscription.getPlanName())
+                    .name(subscription.getName())
                     .price(subscription.getPrice())
-                    .billingCycle(subscription.getBillingCycle())
+                    .isActive(false)
                     .status(SubscriptionStatus.EXPIRED)
                     .currentPeriodStart(subscription.getCurrentPeriodStart())
                     .currentPeriodEnd(subscription.getCurrentPeriodEnd())
@@ -327,7 +326,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
      */
     private void processInitialPayment(Subscription subscription) {
         String orderId = "ORDER_" + UUID.randomUUID().toString().replace("-", "");
-        String orderName = subscription.getPlanName() + " 초기결제";
+        String orderName = subscription.getName() + " 초기결제";
 
         TossPaymentResponse paymentResponse = tossPaymentClient.requestPayment(
                 subscription.getBillingKey().getBillingKey(),

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>빌링키 발급 성공</title>
+</head>
+<body>
+<!--테스트용-->
+    <h1>🎉 카드 등록 및 빌링 객체 생성 완료!</h1>
+    
+    <div>
+        <h3>등록된 정보</h3>
+        <ul>
+            <li><strong>Billing Key:</strong> <span th:text="${billingResponse.billingKey}"></span></li>
+            <li><strong>Customer Key:</strong> <span th:text="${billingResponse.customerKey}"></span></li>
+            <li><strong>Card Info:</strong> <span th:text="${billingResponse.card.number}"></span> (<span th:text="${billingResponse.card.cardType}"></span>)</li>
+        </ul>
+    </div>
+
+    <hr/>
+    <div style="margin-top: 20px;">
+        <a th:href="@{/test/pay(nickname=${nickname})}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">단건 결제 테스트</a>
+        <a th:href="@{/test/history(nickname=${nickname})}" style="padding: 10px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; margin-left: 10px;">결제 내역 보기</a>
+        
+        <form th:action="@{/test/billing/delete}" method="post" style="display: inline; margin-left: 10px;">
+            <input type="hidden" name="nickname" th:value="${nickname}"/>
+            <button type="submit" style="padding: 10px 20px; background-color: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;" onclick="return confirm('빌링키를 삭제하시겠습니까?')">빌링키 삭제</button>
+        </form>
+    </div>
+</body>
+</html>

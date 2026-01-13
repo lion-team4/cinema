@@ -21,5 +21,13 @@ logging:
     org.hibernate.orm.jdbc.bind: trace
 
 toss:
-  secret-key: "YOUR_SECRET_KEY"
+  client-key: "YourClientKey"
+  secret-key: "YourSecretKey"
   url: "https://api.tosspayments.com/v1"
+
+jwt:
+  # HS512 알고리즘을 사용하기 위해 64byte(512bit) 이상의 Base64 인코딩된 시크릿 키가 필요합니다.
+  secret: "dGhpcy1pcy1hLXZlcnktc3Ryb25nLXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1nZW5lcmF0aW9uLXdpdGgtc3ByaW5nLWJvb3Q="
+
+server:
+  port: 8081

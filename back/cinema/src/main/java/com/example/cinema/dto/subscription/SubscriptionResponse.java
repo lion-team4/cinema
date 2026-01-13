@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class SubscriptionResponse {
     private final Long subscriptionId;
-    private final String creatorNickname;
+    private final String subscriberNickname;
     private final String planName;
     private final Long price;
     private final SubscriptionStatus status;
@@ -31,6 +31,7 @@ public class SubscriptionResponse {
     public static SubscriptionResponse from(Subscription subscription) {
         return new SubscriptionResponse(
                 subscription.getSubscriptionId(),
+                subscription.getSubscriber().getNickname(),
                 subscription.getName(),
                 subscription.getPrice(),
                 subscription.getStatus(),

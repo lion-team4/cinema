@@ -13,12 +13,18 @@ import java.util.Base64;
 @Configuration
 public class TossPaymentConfig {
 
+    @Value("${toss.client-key}")
+    private String clientKey;
 
     @Value("${toss.secret-key}")
     private String secretKey;
 
     @Value("${toss.url}")
     private String url;
+
+    public String getClientKey() {
+        return clientKey;
+    }
 
     @Bean
     public RestClient tossRestClient() {
