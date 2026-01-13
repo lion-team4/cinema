@@ -1,4 +1,4 @@
-package com.example.cinema.dto.common;
+package com.example.cinema.config;
 
 import com.example.cinema.repository.content.ContentRepository;
 import lombok.RequiredArgsConstructor;

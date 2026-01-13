@@ -5,7 +5,6 @@ import com.example.cinema.dto.content.*;
 import com.example.cinema.service.content.ContentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
