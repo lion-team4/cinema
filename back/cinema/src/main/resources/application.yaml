@@ -1,11 +1,11 @@
 spring:
   application:
     name: cinema
+
   datasource:
     url: jdbc:mysql://localhost:3306/cinema-db
     username: root
-    password: root1234
-
+    password: 1111
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -20,10 +20,6 @@ logging:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
 
-# 아래처럼 두 설정을 나란히 두시면 됩니다.
 toss:
-  secret-key: test_sk_Z61dvp246YvLqXvE10eD3NmOWE2n
-  url: https://api.tosspayments.com/v1
-
-jwt:
-  secret: VGhpc0lzQVZlcnlMb25nU2VjcmV0S2V5Rm9yVGhlQ2luZW1hQXBwbGljYXRpb25UaGF0SXNEZWZpbml0ZWx5TW9yZVRoYW41MTJCaXRzQW5kU2hvdWxkQmVTZWN1cmVFbm91Z2hGb3JIUzUxMkFsZ29yaXRobUNoZWNr
+  secret-key: "YOUR_SECRET_KEY"
+  url: "https://api.tosspayments.com/v1"
