@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class UserProfileUpdateRequest {
+public class UserUpdateRequest {
     
     @Size(min = 2, max = 20)
     private String nickname;

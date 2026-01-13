@@ -38,4 +38,8 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Boolean seller = false;
+
+    public void withdraw() {
+        this.deletedAt = LocalDateTime.now();
+    }
 }
