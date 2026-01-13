@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class SubscriptionResponse {
     private final Long subscriptionId;
+    private final String creatorNickname;
     private final String planName;
     private final Long price;
     private final SubscriptionStatus status;
