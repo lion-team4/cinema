@@ -1,5 +1,6 @@
 package com.example.cinema.controller.test;
 
+
 import com.example.cinema.config.TossPaymentConfig;
 import com.example.cinema.dto.billing.BillingResponse;
 import com.example.cinema.dto.subscription.FirstSubscriptionResponse;
@@ -21,7 +22,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Controller
 @RequestMapping("/test")
@@ -90,13 +90,13 @@ public class BillingController {
             SubscriptionResponse subscriptionResponse = firstSubscriptionResponse.getSubscription();
             PaymentHistoryResponse paymentHistoryResponse = firstSubscriptionResponse.getPayment();
             BillingResponse billingResponse = subscriptionService.getBilling(user.getUserId());
-            
+
             model.addAttribute("payment", paymentHistoryResponse); // 실제 결제 결과 추가
             model.addAttribute("subscriptionResponse", subscriptionResponse);
             model.addAttribute("nickname", user.getNickname());
             model.addAttribute("billingResponse", billingResponse);
             model.addAttribute("message", "구독 생성 및 초기 결제 성공!");
-            
+
             return "test/success";
         } catch (Exception e) {
             model.addAttribute("code", "SUBSCRIPTION_FAIL");
@@ -142,12 +142,12 @@ public class BillingController {
         try {
             User user = userRepository.findByNickname(nickname)
                     .orElseThrow(() -> new RuntimeException("User not found"));
-            
+
             Subscription subscription = subscriptionRepository.findBySubscriber(user)
                     .orElseThrow(() -> new RuntimeException("Subscription not found"));
 
             subscriptionService.processRecurringPayment(subscription.getSubscriptionId());
-            
+
             return "redirect:/test/history?nickname=" + nickname;
         } catch (Exception e) {
             model.addAttribute("code", "PAYMENT_ERROR");
@@ -180,9 +180,9 @@ public class BillingController {
     public String deleteBillingKey(@RequestParam String nickname) {
         User user = userRepository.findByNickname(nickname)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         subscriptionService.cancelSubscription(user.getUserId());
-        
+
         return "redirect:/test/billing?nickname=" + nickname;
     }
 }
