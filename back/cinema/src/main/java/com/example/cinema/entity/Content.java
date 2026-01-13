@@ -51,4 +51,7 @@ public class Content extends BaseEntity {
     @Column(name = "month_view")
     @Builder.Default
     private Long monthView = 0L;
+
+
+
 }
