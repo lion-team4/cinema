@@ -2,7 +2,7 @@ spring:
   application:
     name: cinema
   datasource:
-    url: jdbc:mysql://localhost:3306/cinema_db
+    url: jdbc:mysql://localhost:3306/cinema-db
     username: root
     password: root1234
 
@@ -22,7 +22,7 @@ logging:
 
 # 아래처럼 두 설정을 나란히 두시면 됩니다.
 toss:
-  secret-key: test_sk_Z61dvp246YvLqXvE10eD3NmOWE2n # 테스트 시크릿 키
+  secret-key: test_sk_Z61dvp246YvLqXvE10eD3NmOWE2n
   url: https://api.tosspayments.com/v1
 
 jwt:
