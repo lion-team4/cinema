@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>플랫폼 구독 결제 테스트</title>
+    <script src="https://js.tosspayments.com/v1/payment-widget"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .info-box {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .info-box strong {
+            color: #333;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .result pre {
+            margin-top: 10px;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 플랫폼 구독 결제 테스트</h1>
+        <p class="subtitle">토스페이먼츠 SDK v2를 사용한 정기 구독 결제 테스트</p>
+        
+        <div class="info-box">
+            <strong>테스트 정보:</strong><br>
+            • 테스트 카드: 4242-4242-4242-4242<br>
+            • 유효기간: 12/34<br>
+            • CVC: 123<br>
+            • 비밀번호: 12<br>
+        </div>
+        
+        <form id="subscriptionForm">
+            <div class="form-group">
+                <label for="apiUrl">API 서버 URL</label>
+                <input type="text" id="apiUrl" value="http://localhost:8080/api" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="accessToken">Access Token (JWT)</label>
+                <input type="text" id="accessToken" placeholder="로그인 후 받은 JWT 토큰을 입력하세요" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="clientKey">토스페이먼츠 Client Key</label>
+                <input type="text" id="clientKey" value="test_ck_6BYq7GWPVve4Z0pXaGmL3NE5vbo1" required>
+            </div>
+            
+            <button type="submit" id="submitBtn">구독 시작하기</button>
+        </form>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const clientKeyInput = document.getElementById('clientKey');
+        const apiUrlInput = document.getElementById('apiUrl');
+        const accessTokenInput = document.getElementById('accessToken');
+        const submitBtn = document.getElementById('submitBtn');
+        const resultDiv = document.getElementById('result');
+        const form = document.getElementById('subscriptionForm');
+
+        // 토스페이먼츠 위젯 초기화
+        let widget;
+        let billingWidget;
+        
+        // SDK 로드 확인 및 위젯 초기화
+        function initTossWidget() {
+            return new Promise((resolve, reject) => {
+                // SDK가 로드되었는지 확인
+                if (typeof window.PaymentWidget === 'undefined') {
+                    // SDK 로드 대기
+                    const checkSDK = setInterval(() => {
+                        if (typeof window.PaymentWidget !== 'undefined') {
+                            clearInterval(checkSDK);
+                            try {
+                                const clientKey = clientKeyInput.value;
+                                widget = PaymentWidget(clientKey, PaymentWidget.ANONYMOUS);
+                                resolve(widget);
+                            } catch (error) {
+                                reject(error);
+                            }
+                        }
+                    }, 100);
+                    
+                    // 10초 타임아웃
+                    setTimeout(() => {
+                        clearInterval(checkSDK);
+                        reject(new Error('토스페이먼츠 SDK 로드 시간 초과'));
+                    }, 10000);
+                } else {
+                    try {
+                        const clientKey = clientKeyInput.value;
+                        widget = PaymentWidget(clientKey, PaymentWidget.ANONYMOUS);
+                        resolve(widget);
+                    } catch (error) {
+                        reject(error);
+                    }
+                }
+            });
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '처리 중...';
+            resultDiv.style.display = 'none';
+            
+            try {
+                // 위젯 초기화
+                await initTossWidget();
+                
+                // 카드 등록 위젯 렌더링
+                billingWidget = await widget.renderBillingMethods('#billing-method-container', {
+                    value: 'card',
+                    variantKey: 'DEFAULT',
+                });
+                
+                // 고객 키 생성 (실제로는 서버에서 받아와야 함)
+                const customerKey = 'CUSTOMER_' + Date.now();
+                
+                // 빌링키 발급 요청
+                const authKey = await billingWidget.requestBillingKey({
+                    customerKey: customerKey,
+                    successUrl: window.location.href + '?success=true',
+                    failUrl: window.location.href + '?fail=true',
+                });
+                
+                showResult('success', '빌링키 발급 성공! 구독을 생성합니다...');
+                
+                // 구독 생성 API 호출 (단일 플랜만 제공)
+                const apiUrl = apiUrlInput.value;
+                const accessToken = accessTokenInput.value;
+                
+                const response = await fetch(`${apiUrl}/users/subscriptions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({
+                        authKey: authKey
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('success', '구독 생성 성공!', data);
+                } else {
+                    showResult('error', '구독 생성 실패', data);
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showResult('error', '오류 발생', {
+                    message: error.message,
+                    error: error.toString()
+                });
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '구독 시작하기';
+            }
+        });
+        
+        function showResult(type, message, data = null) {
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+            
+            let content = `<strong>${message}</strong>`;
+            if (data) {
+                content += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            
+            resultDiv.innerHTML = content;
+        }
+        
+        // 페이지 로드 시 위젯 컨테이너 생성
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.createElement('div');
+            container.id = 'billing-method-container';
+            container.style.marginTop = '20px';
+            form.appendChild(container);
+            
+            // URL 파라미터 확인
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('success') === 'true') {
+                showResult('success', '빌링키 발급이 완료되었습니다. 구독을 생성합니다...');
+            } else if (urlParams.get('fail') === 'true') {
+                showResult('error', '빌링키 발급에 실패했습니다.');
+            }
+        });
+    </script>
+</body>
+</html>
+
