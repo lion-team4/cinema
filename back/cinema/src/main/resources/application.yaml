@@ -19,3 +19,7 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+
+toss:
+  secret-key: test_sk_Z61dvp246YvLqXvE10eD3NmOWE2n # 테스트 시크릿 키
+  url: https://api.tosspayments.com/v1

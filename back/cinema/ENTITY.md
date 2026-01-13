@@ -268,12 +268,16 @@
 | 컬럼명 | 설명 |
 | --- | --- |
 | billing_key_id (PK) | 빌링키 PK |
-| subscription_id (FK -> subscriptions.subscription_id, NOT NULL) | 연결 구독 ID |
+| user_id (FK -> users.user_id, NOT NULL) | 소유 유저 ID |
 | provider (TOSS) | PG사 |
 | billing_key (UNIQUE, NOT NULL) | PG에서 받은 빌링키 값 |
-| card_last4 | 카드 뒤 4자리(선택) |
-| card_brand | 카드 브랜드(선택) |
+| customer_key (NOT NULL) | 결제 요청용 유저 식별키 |
+| card_number | 마스킹된 카드 번호 |
+| card_company | 카드사 명 |
+| card_type | 카드 종류 (신용/체크) |
+| owner_type | 소유자 구분 (개인/법인) |
 | status (ACTIVE, REVOKED) | 상태 |
+| authenticated_at | 인증 일시 |
 | created_at | 생성 일시 |
 | revoked_at | 해지 일시 |
 
