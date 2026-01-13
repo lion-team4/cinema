@@ -58,7 +58,6 @@ public class Content extends BaseEntity {
     public void resetMonthView() {
         this.monthView = 0L;
     }
-
     /**
      * 조회수 증가 (totalView와 monthView 모두 증가)
      */
@@ -66,4 +65,26 @@ public class Content extends BaseEntity {
         this.totalView = (this.totalView == null ? 0L : this.totalView) + 1;
         this.monthView = (this.monthView == null ? 0L : this.monthView) + 1;
     }
+
+    // 필수 값만 가져와서 영화등록
+    public Content(User owner, String title, String description) {
+        this.owner = owner;
+        this.title = title;
+        this.description = description;
+        this.status = (status==null) ? ContentStatus.DRAFT : status;
+    }
+
+    public void updateInfo(String title, String description, ContentStatus status) {
+        this.title = title;
+        this.description = description;
+        this.status = status;
+    }
+
+    // assets를 가져와서 추가 등록
+    public void attachAssets(MediaAsset poster, MediaAsset videoSource, MediaAsset videoHlsMaster) {
+        if (poster != null) this.poster = poster;
+        if (videoSource != null) this.videoSource = videoSource;
+        if (videoHlsMaster != null) this.videoHlsMaster = videoHlsMaster;
+    }
+
 }
