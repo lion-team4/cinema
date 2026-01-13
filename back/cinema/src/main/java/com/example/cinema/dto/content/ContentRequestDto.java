@@ -1,4 +1,4 @@
-package com.example.cinema.dto;
+package com.example.cinema.dto.content;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

@@ -1,4 +1,4 @@
-package com.example.cinema.dto;
+package com.example.cinema.dto.content;
 
 import com.example.cinema.entity.Content;
 
