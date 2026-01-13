@@ -1,21 +1,25 @@
 package com.example.cinema.dto.user;
 
 import com.example.cinema.entity.User;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class UserSimpleResponse {
+public class UserUpdateResponse {
     private Long userId;
     private String nickname;
-    private String profileImageUrl;
+    private String email;
 
-    public static UserSimpleResponse from(User user) {
-        return UserSimpleResponse.builder()
+    public static UserUpdateResponse from(User user) {
+        return UserUpdateResponse.builder()
                 .userId(user.getUserId())
                 .nickname(user.getNickname())
-                .profileImageUrl(user.getProfileImage() != null ? user.getProfileImage().getObjectKey() : null)
+                .email(user.getEmail())
                 .build();
     }
 }

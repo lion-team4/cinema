@@ -2,9 +2,9 @@ spring:
   application:
     name: cinema
   datasource:
-    url: jdbc:mysql://localhost:13306/cinema-db
+    url: jdbc:mysql://localhost:3306/cinema_db
     username: root
-    password: 1111
+    password: root1234
 
     driver-class-name: com.mysql.cj.jdbc.Driver
 
@@ -19,3 +19,6 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+
+jwt:
+  secret: VGhpc0lzQVZlcnlMb25nU2VjcmV0S2V5Rm9yVGhlQ2luZW1hQXBwbGljYXRpb25UaGF0SXNEZWZpbml0ZWx5TW9yZVRoYW41MTJCaXRzQW5kU2hvdWxkQmVTZWN1cmVFbm91Z2hGb3JIUzUxMkFsZ29yaXRobUNoZWNr
