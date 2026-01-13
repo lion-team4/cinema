@@ -22,7 +22,7 @@ public class SubscriptionCreateRequest {
      */
     @NotBlank(message = "인증 키는 필수입니다.")
     private String authKey;
-    
+
     // TestController에서 사용하기 위한 setter
     public void setAuthKey(String authKey) {
         this.authKey = authKey;
