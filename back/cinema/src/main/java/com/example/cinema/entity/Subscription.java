@@ -83,4 +83,23 @@ public class Subscription extends BaseEntity {
                 .billingKey(billingKey)
                 .build();
     }
+
+    public void reActivate(BillingKey newBillingKey) {
+        this.isActive = true;
+        this.status = SubscriptionStatus.ACTIVE;
+        this.billingKey = newBillingKey;
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. 기존 만료일(currentPeriodEnd)이 현재보다 미래라면 (기간이 남았다면)
+        if (this.currentPeriodEnd != null && this.currentPeriodEnd.isAfter(now)) {
+            this.currentPeriodEnd = this.currentPeriodEnd.plusMonths(1);
+        }
+        // 2. 기존 만료일이 없거나, 이미 지났다면
+        else {
+            // 현재 시점부터 1개월 설정
+            this.currentPeriodStart = now;
+            this.currentPeriodEnd = now.plusMonths(1);
+        }
+    }
 }
