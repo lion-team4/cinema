@@ -17,7 +17,7 @@ public record ContentEditResponseDto(
         return new ContentEditResponseDto(
                 c.getTitle(),
                 c.getDescription(),
-                c.getPoster() == null ? null : c.getPoster().getAssetId(),          // MediaAsset PK 이름에 맞춰 수정
+                c.getPoster() == null ? null : c.getPoster().getAssetId(),
                 c.getVideoSource() == null ? null : c.getVideoSource().getAssetId(),
                 c.getVideoHlsMaster() == null ? null : c.getVideoHlsMaster().getAssetId(),
                 c.getStatus()
