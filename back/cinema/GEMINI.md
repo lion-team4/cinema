@@ -3,12 +3,13 @@
 ## 1. Project Overview
 **Name:** Cinema
 **Description:** A Spring Boot-based backend application for a cinema/video streaming platform.
-**Last Updated:** 2026-01-13 (Tuesday)
+**Last Updated:** 2026-01-14 (Wednesday)
 
 **Current Status:**
 *   **Security:** **Implemented**. JWT infrastructure (`JwtTokenProvider`, `JwtAuthenticationFilter`, `ProjectSecurityConfig`) is fully operational.
 *   **User Module:** **Implemented**. `UserService` handles Signup, Login (JWT), Profile, and Token Reissue.
 *   **Subscription Module:** **Implemented**. `SubscriptionService` supports Plan Creation, Billing Key management, Recurring Payments (Toss), and History.
+*   **Billing Module:** **Refactored**. `BillingController` uses `SubscriptionService` and new `BillingRequest`/`BillingResponse` DTOs.
 *   **Content Module:** **Scaffolded but Empty**. `ContentController` and `ContentService` files exist but contain no logic. `ContentController` has an incorrect annotation.
 *   **Schedule Module:** **Pending Implementation**. Entities (`ScheduleItem`, `ScheduleDay`) and DTOs exist, but `ScheduleService`, `ScheduleController`, and `ScheduleRepository` are **missing**.
 *   **Infrastructure:** Database (MySQL), QueryDSL, Swagger, and Toss Payment configuration are ready.
@@ -42,15 +43,18 @@
     *   `schedule/ScheduleService`: ❌ **Missing** (Does not exist).
 *   `repository/`: ✅ Repositories created for User, Subscription, Content, Payment, etc. **Missing** `ScheduleRepository`.
 *   `entity/`: ✅ Implemented (`User`, `Subscription`, `Content`, `ScheduleItem`, `Settlement`, etc.).
-*   `dto/`: ✅ Request/Response DTOs prepared for most modules (including Schedule).
+*   `dto/`:
+    *   `billing/`: ✅ `BillingRequest`, `BillingResponse` (New).
+    *   `auth`, `common`, `content`, `schedule`, `settlement`, `subscription`, `theater`, `user`: ✅ Defined.
 *   `exception/`: ❌ **Empty**. Global exception handling is missing.
 
 ## 4. Analysis & Action Items
 
-### 📊 Project Health Check (2026-01-13)
+### 📊 Project Health Check (2026-01-14)
 *   **Code Quality**:
     *   ⚠️ **Exception Handling**: The `com.example.cinema.exception` package is empty. No global `@ControllerAdvice` exists. Exceptions will return raw 500 errors to clients.
     *   ⚠️ **Test Endpoints**: `BillingController` (test) is exposed publicly (`permitAll` in `ProjectSecurityConfig`). This allows unauthenticated users to trigger billing logic. Must be secured or removed in production.
+    *   ✅ **DTO Usage**: New `BillingRequest`/`BillingResponse` DTOs improve type safety and documentation for billing operations.
 *   **Architecture**:
     *   ✅ **Layered Architecture**: Clear separation of Controller/Service/Repository.
     *   ✅ **Security**: JWT-based auth is correctly configured for most endpoints.
@@ -80,6 +84,7 @@
     *   [x] Toss Payment Integration (Billing Key, Recurring)
     *   [x] Subscription Service logic
     *   [x] Refactor Test Controllers to use Real Service
+    *   [x] Create Billing DTOs
 
 3.  **Phase 3: Core Content & Schedule (Current Priority)**
     *   [ ] **Fix ContentController & Implement ContentService**
@@ -92,3 +97,26 @@
     *   [ ] Settlement Processing (Batch/Admin)
     *   [ ] **Security Hardening**: Remove/Secure `/test/**` endpoints.
     *   [ ] API Documentation (Swagger) Validation
+
+## 5. Comprehensive Analysis Report (2026-01-14)
+
+### 5.1 Overview
+The project is in a **mid-development state**. The core authentication and subscription/payment infrastructure is well-established and operational. However, the core business logic related to the cinema domain (Movies, Schedules, Theaters) is largely missing or skeletal.
+
+### 5.2 Key Findings
+1.  **Payment & Subscription**: 
+    *   Successfully integrated with Toss Payments (Billing Key issuance, Recurring Payments).
+    *   Logic is robust, using proper entities (`Subscription`, `Payment`, `BillingKey`) and transactional services.
+    *   Test infrastructure (`BillingController`) works but should be restricted in production.
+2.  **Entity Relations**:
+    *   Good use of JPA (`@OneToOne`, `@ManyToOne`) and `BaseEntity` for auditing.
+    *   `User` entity is properly designed with lazy loading.
+3.  **Architecture Gaps**:
+    *   **Empty Modules**: `Content` and `Schedule` are critical for a Cinema app but are currently just placeholders. This is the biggest blocker for functional MVP.
+    *   **Error Handling**: Complete lack of custom exception handling means debugging client-side errors will be difficult, and API responses will be inconsistent on failure.
+
+### 5.3 Recommendations
+*   **Priority 1 (Content)**: Implement `ContentService` immediately. Without movies/content, the schedule and reservation systems cannot be built.
+*   **Priority 2 (Schedule)**: Build the `Schedule` module next. This links `Content` to `Theater`.
+*   **Priority 3 (Exceptions)**: Implement a `GlobalExceptionHandler` to standardize API error responses (e.g., standard JSON error body instead of HTML stack traces).
+*   **Security**: Ensure `BillingController` is eventually disabled or secured with `ROLE_ADMIN` to prevent payment abuse.

@@ -10,7 +10,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     properties:
       hibernate:
         format_sql: true
@@ -21,8 +21,8 @@ logging:
     org.hibernate.orm.jdbc.bind: trace
 
 toss:
-  client-key: "YourClientKey"
-  secret-key: "YourSecretKey"
+  client-key: ""
+  secret-key: ""
   url: "https://api.tosspayments.com/v1"
 
 jwt:

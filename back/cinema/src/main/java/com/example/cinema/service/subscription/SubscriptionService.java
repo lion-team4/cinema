@@ -1,12 +1,10 @@
 package com.example.cinema.service.subscription;
 
+import com.example.cinema.dto.billing.BillingResponse;
 import com.example.cinema.dto.common.PageResponse;
+import com.example.cinema.dto.subscription.*;
 import com.example.cinema.infrastructure.payment.toss.dto.TossBillingResponse;
 import com.example.cinema.infrastructure.payment.toss.dto.TossPaymentResponse;
-import com.example.cinema.dto.subscription.PaymentHistoryResponse;
-import com.example.cinema.dto.subscription.SubscriptionCreateRequest;
-import com.example.cinema.dto.subscription.SubscriptionResponse;
-import com.example.cinema.dto.subscription.SubscriptionUpdateBillingRequest;
 import com.example.cinema.entity.BillingKey;
 import com.example.cinema.entity.Payment;
 import com.example.cinema.entity.Subscription;
@@ -21,16 +19,20 @@ import com.example.cinema.type.BillingProvider;
 import com.example.cinema.type.PaymentStatus;
 import com.example.cinema.type.SubscriptionStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
@@ -42,7 +44,7 @@ public class SubscriptionService {
 
     // 구독 생성 및 초기 결제
     @Transactional
-    public SubscriptionResponse createSubscription(Long userId, SubscriptionCreateRequest request) {
+    public FirstSubscriptionResponse createSubscription(Long userId, SubscriptionCreateRequest request) {
         // 1. 유저 확인
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -74,6 +76,9 @@ public class SubscriptionService {
                                 BillingKey.of(user, billingResponse)
                         );
 
+        log.info("Billing: {}", billingKey.getBillingKey());
+        log.info("Customer: {}", billingKey.getCustomerKey());
+
         // 6. Subscription Entity 생성
         Subscription subscription =
                 subscriptionRepository.save(
@@ -81,9 +86,7 @@ public class SubscriptionService {
                 );
 
         // 7. 초기 결제 처리
-        processInitialPayment(subscription);
-
-        return SubscriptionResponse.from(subscription);
+        return processInitialPayment(subscription);
     }
 
 
@@ -177,9 +180,19 @@ public class SubscriptionService {
         }
     }
 
+    public BillingResponse getBilling(Long userId){
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Subscription subscription = subscriptionRepository.findBySubscriber(user)
+                .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
+
+        return BillingResponse.from(subscription.getBillingKey());
+    }
+
     // --- 내부 결제 로직 ---
     // 최초 결제
-    private void processInitialPayment(Subscription subscription) {
+    private FirstSubscriptionResponse processInitialPayment(Subscription subscription) {
         String orderId = "ORDER_INIT_" + UUID.randomUUID().toString().substring(0, 18);
         String orderName = subscription.getName() + " (최초결제)";
 
@@ -205,6 +218,13 @@ public class SubscriptionService {
             // 결제 실패 시 예외를 던져 트랜잭션 롤백 (구독 생성 취소)
             throw new IllegalStateException("초기 결제 승인이 거절되었습니다.");
         }
+
+
+
+        return FirstSubscriptionResponse.from(
+                SubscriptionResponse.from(subscription),
+                PaymentHistoryResponse.from(payment)
+        );
     }
 
 

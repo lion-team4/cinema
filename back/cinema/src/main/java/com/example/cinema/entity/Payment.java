@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Getter
@@ -58,7 +59,7 @@ public class Payment extends BaseEntity {
                 .orderId(response.getOrderId())
                 .orderName(response.getOrderName())
                 .status(PaymentStatus.tossPaymentStatus(response.getStatus()))
-                .paidAt(response.getApprovedAt() != null ? LocalDateTime.parse(response.getApprovedAt()) : LocalDateTime.now())
+                .paidAt(response.getApprovedAt() != null ? OffsetDateTime.parse(response.getApprovedAt()).toLocalDateTime() : LocalDateTime.now())
                 .build();
 
     }
