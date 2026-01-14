@@ -1,8 +1,11 @@
 package com.example.cinema.controller.test;
 
 import com.example.cinema.config.TossPaymentConfig;
+import com.example.cinema.dto.billing.BillingResponse;
+import com.example.cinema.dto.subscription.FirstSubscriptionResponse;
 import com.example.cinema.dto.subscription.PaymentHistoryResponse;
 import com.example.cinema.dto.subscription.SubscriptionCreateRequest;
+import com.example.cinema.dto.subscription.SubscriptionResponse;
 import com.example.cinema.entity.Payment;
 import com.example.cinema.entity.Subscription;
 import com.example.cinema.entity.User;
@@ -58,7 +61,7 @@ public class BillingController {
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
         model.addAttribute("clientKey", tossPaymentConfig.getClientKey());
-        model.addAttribute("customerKey", user.getNickname()); // 테스트 편의상 닉네임을 키로 사용
+        model.addAttribute("customerKey", user.getCustomerKey()); // User 엔티티의 customerKey 사용 (CUSTOMER_{id})
         model.addAttribute("customerEmail", user.getEmail());
         model.addAttribute("customerName", user.getNickname());
 
@@ -71,29 +74,28 @@ public class BillingController {
      */
     @GetMapping("/success")
     public String successPage(@RequestParam String authKey, @RequestParam String customerKey, Model model) {
-        // customerKey = nickname
-        User user = userRepository.findByNickname(customerKey)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
+        // customerKey = CUSTOMER_{userId} 형식
         try {
+            Long userId = Long.parseLong(customerKey.replace("CUSTOMER_", ""));
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
             // DTO 생성 (Reflection/ObjectMapper)
             SubscriptionCreateRequest request = objectMapper.convertValue(
                     Map.of("authKey", authKey),
                     SubscriptionCreateRequest.class
             );
 
-            subscriptionService.createSubscription(user.getUserId(), request);
+            FirstSubscriptionResponse firstSubscriptionResponse = subscriptionService.createSubscription(user.getUserId(), request);
+
+            SubscriptionResponse subscriptionResponse = firstSubscriptionResponse.getSubscription();
+            PaymentHistoryResponse paymentHistoryResponse = firstSubscriptionResponse.getPayment();
+            BillingResponse billingResponse = subscriptionService.getBilling(user.getUserId());
             
-            // 결과 표시용 가짜 응답 객체 (View 호환성)
-            TossBillingResponse mockResponse = new TossBillingResponse();
-            // 필요한 필드만 대충 채워넣거나 View를 수정해야 함. 
-            // 여기서는 View가 billingResponse.billingKey 등을 쓸 수 있으므로 주의.
-            // 하지만 SubscriptionService는 SubscriptionResponse를 반환함.
-            // 기존 View(test/success.html)가 TossBillingResponse를 기대한다면 맞춰줘야 함.
-            // 일단은 성공 메시지로 대체하거나, View에 전달하는 객체를 조정.
-            
-            model.addAttribute("billingResponse", mockResponse); 
-            model.addAttribute("nickname", customerKey);
+            model.addAttribute("payment", paymentHistoryResponse); // 실제 결제 결과 추가
+            model.addAttribute("subscriptionResponse", subscriptionResponse);
+            model.addAttribute("nickname", user.getNickname());
+            model.addAttribute("billingResponse", billingResponse);
             model.addAttribute("message", "구독 생성 및 초기 결제 성공!");
             
             return "test/success";
