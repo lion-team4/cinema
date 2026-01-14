@@ -30,7 +30,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
@@ -38,14 +38,10 @@ public class SubscriptionService {
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
     private final TossPaymentClient tossPaymentClient;
-    
-    // 단일 플랜 정보 (플랫폼은 단일 플랜만 제공)
-    private static final String DEFAULT_PLAN_NAME = "기본 플랜";
-    private static final Long DEFAULT_PLAN_PRICE = 10000L;
 
-    /**
-     * 구독 생성 및 초기 결제
-     */
+
+    // 구독 생성 및 초기 결제
+    @Transactional
     public SubscriptionResponse createSubscription(Long userId, SubscriptionCreateRequest request) {
         // 1. 유저 확인
         User user = userRepository.findById(userId)
@@ -90,7 +86,9 @@ public class SubscriptionService {
         return SubscriptionResponse.from(subscription);
     }
 
-    @Transactional(readOnly = true)
+
+
+    //구독 정보 조회
     public SubscriptionResponse getMySubscription(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -102,7 +100,8 @@ public class SubscriptionService {
     }
 
 
-    @Transactional(readOnly = true)
+
+    // 결제 내역 조회
     public PageResponse<PaymentHistoryResponse> getPaymentHistory(
             Long userId,
             LocalDateTime startDate,
@@ -115,9 +114,11 @@ public class SubscriptionService {
         Subscription subscription = subscriptionRepository.findBySubscriber(user)
                 .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
 
+
         var paymentPage = (startDate != null && endDate != null)
                 ? paymentRepository.findBySubscriptionAndPaidAtBetween(
-                        subscription, startDate, endDate, pageable)
+                        subscription, startDate, endDate, pageable
+                )
                 : paymentRepository.findBySubscription(subscription, pageable);
 
         return PageResponse.from(
@@ -125,6 +126,9 @@ public class SubscriptionService {
         );
     }
 
+
+
+    @Transactional
     public SubscriptionResponse updateBillingKey(Long userId, SubscriptionUpdateBillingRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -154,6 +158,8 @@ public class SubscriptionService {
         return SubscriptionResponse.from(subscription);
     }
 
+    // 구독 취소
+    @Transactional
     public void cancelSubscription(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -172,10 +178,7 @@ public class SubscriptionService {
     }
 
     // --- 내부 결제 로직 ---
-
-    /**
-     * 초기 결제 처리
-     */
+    // 최초 결제
     private void processInitialPayment(Subscription subscription) {
         String orderId = "ORDER_INIT_" + UUID.randomUUID().toString().substring(0, 18);
         String orderName = subscription.getName() + " (최초결제)";
@@ -195,21 +198,8 @@ public class SubscriptionService {
             throw new RuntimeException("초기 결제 요청 중 오류가 발생했습니다: " + e.getMessage());
         }
 
-        Payment payment = Payment.builder()
-                .subscription(subscription)
-                .providerPaymentId(paymentResponse.getPaymentKey())
-                .amount(paymentResponse.getTotalAmount())
-                .orderId(orderId)
-                .orderName(orderName)
-                .status(paymentResponse.getStatus().equals("DONE") 
-                        ? PaymentStatus.APPROVED 
-                        : PaymentStatus.FAILED)
-                .paidAt(paymentResponse.getApprovedAt() != null 
-                        ? parseDateTime(paymentResponse.getApprovedAt())
-                        : LocalDateTime.now())
-                .build();
-
-        paymentRepository.save(payment);
+        Payment payment = paymentRepository
+                .save(Payment.create(subscription, paymentResponse));
 
         if (payment.getStatus() == PaymentStatus.FAILED) {
             // 결제 실패 시 예외를 던져 트랜잭션 롤백 (구독 생성 취소)
@@ -217,9 +207,9 @@ public class SubscriptionService {
         }
     }
 
-    /**
-     * 정기 결제 (스케줄러 등에서 호출)
-     */
+
+    //정기 결제 (스케줄러 등에서 호출)
+    @Transactional
     public void processRecurringPayment(Subscription subscription) {
         if (subscription.getStatus() != SubscriptionStatus.ACTIVE) return;
         if (subscription.getBillingKey() == null) return;
@@ -236,16 +226,8 @@ public class SubscriptionService {
                     subscription.getPrice()
             );
 
-            Payment payment = Payment.builder()
-                    .subscription(subscription)
-                    .providerPaymentId(paymentResponse.getPaymentKey())
-                    .amount(paymentResponse.getTotalAmount())
-                    .orderId(orderId)
-                    .orderName(orderName)
-                    .status(paymentResponse.getStatus().equals("DONE") ? PaymentStatus.APPROVED : PaymentStatus.FAILED)
-                    .paidAt(paymentResponse.getApprovedAt() != null ? parseDateTime(paymentResponse.getApprovedAt()) : LocalDateTime.now())
-                    .build();
-            paymentRepository.save(payment);
+            Payment payment = paymentRepository
+                    .save(Payment.create(subscription, paymentResponse));
 
             if (payment.getStatus() == PaymentStatus.APPROVED) {
                 // 기간 연장
