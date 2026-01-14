@@ -104,6 +104,16 @@ public class BillingController {
     }
 
     /**
+     * authKey만 발급받는 페이지 (Postman 테스트용)
+     * 구독 생성 없이 authKey만 받아서 표시합니다.
+     */
+    @GetMapping("/auth-key")
+    public String authKeyPage(@RequestParam String authKey, Model model) {
+        model.addAttribute("authKey", authKey);
+        return "test/auth-key";
+    }
+
+    /**
      * 빌링키 발급 실패 시 호출되는 콜백 페이지입니다.
      */
     @GetMapping("/fail")
