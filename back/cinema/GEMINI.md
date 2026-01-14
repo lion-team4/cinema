@@ -10,7 +10,10 @@
 *   **User Module:** **Implemented**. `UserService` handles Signup, Login (JWT), Profile, and Token Reissue.
 *   **Subscription Module:** **Implemented**. `SubscriptionService` supports Plan Creation, Billing Key management, Recurring Payments (Toss), and History.
 *   **Billing Module:** **Refactored**. `BillingController` uses `SubscriptionService` and new `BillingRequest`/`BillingResponse` DTOs.
-*   **Content Module:** **Scaffolded but Empty**. `ContentController` and `ContentService` files exist but contain no logic. `ContentController` has an incorrect annotation.
+*   **Content Module:** **Implemented (Partial)**. 
+    *   **Repository**: ✅ Optimized (`getTagsByContentId`) & QueryDSL Implemented.
+    *   **Service**: ✅ `ContentService` implemented (Search logic). Package refactored to `service.content`.
+    *   **Controller**: ⚠️ **Bug**. `ContentController` exists but uses `@RestController("/contents")` (Bean Name) instead of `@RequestMapping("/contents")`. This causes endpoints to be mapped to root `/`. Duplicate file was removed.
 *   **Schedule Module:** **Pending Implementation**. Entities (`ScheduleItem`, `ScheduleDay`) and DTOs exist, but `ScheduleService`, `ScheduleController`, and `ScheduleRepository` are **missing**.
 *   **Infrastructure:** Database (MySQL), QueryDSL, Swagger, and Toss Payment configuration are ready.
 
@@ -34,14 +37,17 @@
     *   `auth/AuthController`: ✅ Implemented.
     *   `user/UserController`: ✅ Implemented.
     *   `subscription/SubscriptionController`: ✅ Implemented.
-    *   `content/ContentController`: ⚠️ **Bug/Empty**. Exists but has no methods and incorrect `@RestController("/api")` annotation.
+    *   `content/ContentController`: ⚠️ **Annotation Bug**. `@RestController("/contents")` -> Needs `@RequestMapping("/contents")`.
     *   `test/BillingController`: ✅ Refactored to use `SubscriptionService`.
 *   `service/`:
-    *   `user/UserService`: ✅ Implemented (Signup, Login, Profile, Reissue, Delete).
-    *   `subscription/SubscriptionService`: ✅ Implemented (Toss Payment Integration, Billing Key, Recurring).
-    *   `contentService/ContentService`: ❌ **Empty** (Class exists but no logic).
-    *   `schedule/ScheduleService`: ❌ **Missing** (Does not exist).
-*   `repository/`: ✅ Repositories created for User, Subscription, Content, Payment, etc. **Missing** `ScheduleRepository`.
+    *   `user/UserService`: ✅ Implemented.
+    *   `subscription/SubscriptionService`: ✅ Implemented.
+    *   `content/ContentService`: ✅ Implemented (Search).
+    *   `schedule/ScheduleService`: ❌ **Missing**.
+*   `repository/`: 
+    *   `content/ContentRepository`: ✅ Optimized.
+    *   `content/custom/ContentRepositoryImpl`: ✅ Implemented.
+    *   **Missing** `ScheduleRepository`.
 *   `entity/`: ✅ Implemented (`User`, `Subscription`, `Content`, `ScheduleItem`, `Settlement`, etc.).
 *   `dto/`:
     *   `billing/`: ✅ `BillingRequest`, `BillingResponse` (New).
@@ -52,26 +58,22 @@
 
 ### 📊 Project Health Check (2026-01-14)
 *   **Code Quality**:
-    *   ⚠️ **Exception Handling**: The `com.example.cinema.exception` package is empty. No global `@ControllerAdvice` exists. Exceptions will return raw 500 errors to clients.
-    *   ⚠️ **Test Endpoints**: `BillingController` (test) is exposed publicly (`permitAll` in `ProjectSecurityConfig`). This allows unauthenticated users to trigger billing logic. Must be secured or removed in production.
-    *   ✅ **DTO Usage**: New `BillingRequest`/`BillingResponse` DTOs improve type safety and documentation for billing operations.
+    *   ✅ **Duplicate Removed**: The conflicting `ContentController` in the parent package has been deleted.
+    *   ✅ **Refactoring**: `ContentService` package renamed to `content` (from `contentService`), adhering to naming conventions.
+    *   ⚠️ **Annotation Error**: `ContentController`'s `@RestController("/contents")` is semantically incorrect for URL mapping. It sets the bean name, not the path.
+    *   ⚠️ **Exception Handling**: No global error handling yet.
 *   **Architecture**:
-    *   ✅ **Layered Architecture**: Clear separation of Controller/Service/Repository.
-    *   ✅ **Security**: JWT-based auth is correctly configured for most endpoints.
-    *   ❌ **Missing Logic**: Content and Schedule modules are purely skeletal.
+    *   ✅ **Layered Architecture**: Controller -> Service -> Repository flow is now established for Content Search.
+    *   ❌ **Missing Logic**: Schedule module is the next major block.
 
 ### 🚨 Critical Gaps (Immediate Actions)
-1.  **Content Service Implementation**:
-    *   **Fix**: `ContentController` annotation (`@RequestMapping` needed).
-    *   **Implement**: `ContentService` methods: `createContent`, `getContent` (Detail), `searchContent` (QueryDSL), `updateContent`, `deleteContent`.
-    *   **Expose**: `ContentController` endpoints.
-    *   **Link**: Handle `MediaAsset` linking for content files/images.
+1.  **Fix ContentController Annotation**:
+    *   **Action**: Change `@RestController("/contents")` to `@RestController` + `@RequestMapping("/contents")`.
 2.  **Schedule Service Implementation**:
     *   **Create**: `ScheduleRepository`, `ScheduleService`, `ScheduleController`.
-    *   **Logic**: Manage cinema schedules (`ScheduleItem`, `ScheduleDay`), check conflicts, retrieve by date/theater.
+    *   **Logic**: Manage cinema schedules (`ScheduleItem`, `ScheduleDay`).
 3.  **Global Exception Handling**:
     *   **Implement**: `GlobalExceptionHandler` with `@RestControllerAdvice`.
-    *   **Define**: Custom Exception classes (`BusinessException`, `EntityNotFoundException`, etc.) and `ErrorResponse` DTO.
 
 ### 📅 Implementation Roadmap
 1.  **Phase 1: Foundation & User (Completed)**
@@ -81,42 +83,34 @@
     *   [x] User Service (Auth/Profile)
 
 2.  **Phase 2: Commerce & Subscription (Completed)**
-    *   [x] Toss Payment Integration (Billing Key, Recurring)
+    *   [x] Toss Payment Integration
     *   [x] Subscription Service logic
-    *   [x] Refactor Test Controllers to use Real Service
-    *   [x] Create Billing DTOs
 
 3.  **Phase 3: Core Content & Schedule (Current Priority)**
-    *   [ ] **Fix ContentController & Implement ContentService**
+    *   [x] Content Repository & Test Data
+    *   [x] Content Service (Search)
+    *   [ ] **Fix ContentController Mapping**
     *   [ ] **Create & Implement Schedule Module**
     *   [ ] **Implement Global Exception Handling**
-    *   [ ] Review System (Create/List reviews)
 
 4.  **Phase 4: Advanced Features & Cleanup**
     *   [ ] Watch History Tracking
-    *   [ ] Settlement Processing (Batch/Admin)
-    *   [ ] **Security Hardening**: Remove/Secure `/test/**` endpoints.
+    *   [ ] Settlement Processing
     *   [ ] API Documentation (Swagger) Validation
 
 ## 5. Comprehensive Analysis Report (2026-01-14)
 
 ### 5.1 Overview
-The project is in a **mid-development state**. The core authentication and subscription/payment infrastructure is well-established and operational. However, the core business logic related to the cinema domain (Movies, Schedules, Theaters) is largely missing or skeletal.
+The **Content Module** is taking shape. The duplicate controller issue is resolved, and the service layer is implemented. However, a minor but functional bug exists in the Controller annotation which will misroute API requests.
 
 ### 5.2 Key Findings
-1.  **Payment & Subscription**: 
-    *   Successfully integrated with Toss Payments (Billing Key issuance, Recurring Payments).
-    *   Logic is robust, using proper entities (`Subscription`, `Payment`, `BillingKey`) and transactional services.
-    *   Test infrastructure (`BillingController`) works but should be restricted in production.
-2.  **Entity Relations**:
-    *   Good use of JPA (`@OneToOne`, `@ManyToOne`) and `BaseEntity` for auditing.
-    *   `User` entity is properly designed with lazy loading.
-3.  **Architecture Gaps**:
-    *   **Empty Modules**: `Content` and `Schedule` are critical for a Cinema app but are currently just placeholders. This is the biggest blocker for functional MVP.
-    *   **Error Handling**: Complete lack of custom exception handling means debugging client-side errors will be difficult, and API responses will be inconsistent on failure.
+1.  **Content Module**:
+    *   **Progress**: Service and Repository layers are connected.
+    *   **Bug**: `ContentController` mapping is incorrect (`@RestController("/contents")`). This means `GET /api/contents` (or similar) won't work; it will likely listen at `GET /`.
+2.  **Refactoring**:
+    *   The developer has cleaned up package names (`contentService` -> `content`) and removed the duplicate file.
 
 ### 5.3 Recommendations
-*   **Priority 1 (Content)**: Implement `ContentService` immediately. Without movies/content, the schedule and reservation systems cannot be built.
-*   **Priority 2 (Schedule)**: Build the `Schedule` module next. This links `Content` to `Theater`.
-*   **Priority 3 (Exceptions)**: Implement a `GlobalExceptionHandler` to standardize API error responses (e.g., standard JSON error body instead of HTML stack traces).
-*   **Security**: Ensure `BillingController` is eventually disabled or secured with `ROLE_ADMIN` to prevent payment abuse.
+*   **Immediate Fix**: Correct the `ContentController` annotation to `@RequestMapping("/contents")`.
+*   **Next Feature**: Start the **Schedule Module**. This is the last major missing piece for the MVP.
+*   **Technical Debt**: Add `GlobalExceptionHandler` to prevent raw stack traces from leaking to clients.
