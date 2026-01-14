@@ -1,6 +1,6 @@
 package com.example.cinema.controller.content;
 
-
+import com.example.cinema.dto.common.ApiResponse;
 import com.example.cinema.dto.content.*;
 import com.example.cinema.service.content.ContentService;
 import jakarta.validation.Valid;
@@ -15,59 +15,73 @@ import java.security.Principal;
 @RequestMapping("/contents")
 @RequiredArgsConstructor
 public class ContentController {
-    public final ContentService contentService;
 
+    private final ContentService contentService;
 
-    //1차등록
+    // 1차 등록
     @PostMapping
-    public ResponseEntity<ContentResponseDto> createContent(@Valid  @RequestBody ContentRequestDto contentDto,
-                                                    Principal principal){
-
+    public ResponseEntity<ApiResponse<ContentResponseDto>> createContent(
+            @Valid @RequestBody ContentRequestDto contentDto,
+            Principal principal
+    ) {
         String email = principal.getName();
-        ContentResponseDto contentResponseDto =
-                contentService.createContent(contentDto, email);
+        ContentResponseDto contentResponseDto = contentService.createContent(contentDto, email);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(contentResponseDto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("콘텐츠가 생성되었습니다.", contentResponseDto));
     }
 
-    //2차등록
-    // 2차등록이 끝나면 status만 보내도 되지 않을까요? 굳이 Dto를 보낼필요가 있을까?
+    // 2차 등록 (에셋 추가)
     @PatchMapping("/{contentId}")
-    public ResponseEntity<ContentResponseDto> patchContent( @Valid @RequestBody ContentAssetAttachRequest assertDto,
-                                                    Principal principal,
-                                                    @PathVariable Long contentId){
-
+    public ResponseEntity<ApiResponse<ContentResponseDto>> patchContent(
+            @Valid @RequestBody ContentAssetAttachRequest assertDto,
+            Principal principal,
+            @PathVariable Long contentId
+    ) {
         String email = principal.getName();
         ContentResponseDto contentResponseDto = contentService.addAssetsContent(assertDto, email, contentId);
 
-        return ResponseEntity.status(HttpStatus.OK).body(contentResponseDto);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.success("콘텐츠 에셋이 추가되었습니다.", contentResponseDto));
     }
 
+    // 수정 폼 조회
     @GetMapping("/{contentId}/edit")
-    public ResponseEntity<ContentEditResponseDto> getEditForm(@PathVariable Long contentId,
-                                                       Principal principal) {
+    public ResponseEntity<ApiResponse<ContentEditResponseDto>> getEditForm(
+            @PathVariable Long contentId,
+            Principal principal
+    ) {
         String email = principal.getName();
         ContentEditResponseDto responseDto = contentService.getEditContent(email, contentId);
 
-        return ResponseEntity.status(HttpStatus.OK).body(responseDto);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.success("콘텐츠 수정 정보를 조회했습니다.", responseDto));
     }
 
+    // 콘텐츠 수정
     @PutMapping("/{contentId}")
-    public ResponseEntity<ContentEditResponseDto> update(@PathVariable Long contentId,
-                                                         @Valid @RequestBody ContentUpdateRequestDto request,
-                                                         Principal principal) {
-
+    public ResponseEntity<ApiResponse<ContentEditResponseDto>> update(
+            @PathVariable Long contentId,
+            @Valid @RequestBody ContentUpdateRequestDto request,
+            Principal principal
+    ) {
         String email = principal.getName();
         ContentEditResponseDto responseDto = contentService.updateContent(email, contentId, request);
 
-        return ResponseEntity.status(HttpStatus.OK).body(responseDto);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.success("콘텐츠가 수정되었습니다.", responseDto));
     }
 
-    @DeleteMapping("{contentId}")
-    public ResponseEntity<Void> deleteContent(@PathVariable Long contentId, Principal principal) {
+    // 콘텐츠 삭제
+    @DeleteMapping("/{contentId}")
+    public ResponseEntity<ApiResponse<Void>> deleteContent(
+            @PathVariable Long contentId,
+            Principal principal
+    ) {
         String email = principal.getName();
         contentService.deleteContent(email, contentId);
 
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.success("콘텐츠가 삭제되었습니다."));
     }
 }
