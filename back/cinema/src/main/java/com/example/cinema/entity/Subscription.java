@@ -58,6 +58,7 @@ public class Subscription extends BaseEntity {
         this.status = SubscriptionStatus.ACTIVE;
     }
 
+    
     public void expire(){ //구독 만료 or 결제 전 or 결제 실패
         this.isActive = false;
         this.status = SubscriptionStatus.EXPIRED;
