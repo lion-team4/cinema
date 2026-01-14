@@ -1,6 +1,9 @@
 package com.example.cinema.service.content;
 
 
+import com.example.cinema.dto.common.PageResponse;
+import com.example.cinema.dto.content.ContentSearchRequest;
+import com.example.cinema.dto.content.ContentSearchResponse;
 import com.example.cinema.dto.content.*;
 import com.example.cinema.entity.Content;
 import com.example.cinema.entity.MediaAsset;
@@ -150,5 +153,11 @@ public class ContentService {
         MediaAsset asset = getAssetOrThrow(assetId, notFoundMsg);
         validateAssetType(asset, expectedType);
         return asset;
+    }
+
+    public PageResponse<ContentSearchResponse> search(ContentSearchRequest request) {
+        var page = contentRepository.searchContent(request);
+
+        return PageResponse.from(page.map(ContentSearchResponse::from));
     }
 }

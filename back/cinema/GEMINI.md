@@ -34,7 +34,7 @@
     *   `auth/AuthController`: ✅ Implemented.
     *   `user/UserController`: ✅ Implemented.
     *   `subscription/SubscriptionController`: ✅ Implemented.
-    *   `ContentController`: ⚠️ **Bug/Empty**. Exists but has no methods and incorrect `@RestController("/api")` annotation.
+    *   `content/ContentController`: ⚠️ **Bug/Empty**. Exists but has no methods and incorrect `@RestController("/api")` annotation.
     *   `test/BillingController`: ✅ Refactored to use `SubscriptionService`.
 *   `service/`:
     *   `user/UserService`: ✅ Implemented (Signup, Login, Profile, Reissue, Delete).
