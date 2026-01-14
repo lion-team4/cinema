@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/test/billing")
 @RequiredArgsConstructor
+@Profile("dev")
 @Slf4j
 @Profile("dev")
 public class BillingRestController {
