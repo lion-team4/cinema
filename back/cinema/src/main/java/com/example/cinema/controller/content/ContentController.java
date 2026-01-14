@@ -49,6 +49,7 @@ public class ContentController {
                                                        Principal principal) {
         String email = principal.getName();
         ContentEditResponseDto responseDto = contentService.getEditContent(email, contentId);
+
         return ResponseEntity.status(HttpStatus.OK).body(responseDto);
     }
 
@@ -59,6 +60,7 @@ public class ContentController {
 
         String email = principal.getName();
         ContentEditResponseDto responseDto = contentService.updateContent(email, contentId, request);
+
         return ResponseEntity.status(HttpStatus.OK).body(responseDto);
     }
 
@@ -66,6 +68,7 @@ public class ContentController {
     public ResponseEntity<Void> deleteContent(@PathVariable Long contentId, Principal principal) {
         String email = principal.getName();
         contentService.deleteContent(email, contentId);
+
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }
