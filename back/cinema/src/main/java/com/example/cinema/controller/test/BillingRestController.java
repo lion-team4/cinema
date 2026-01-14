@@ -7,6 +7,7 @@ import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.service.subscription.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/test/billing")
 @RequiredArgsConstructor
 @Slf4j
+@Profile("dev")
 public class BillingRestController {
 
     private final SubscriptionService subscriptionService;

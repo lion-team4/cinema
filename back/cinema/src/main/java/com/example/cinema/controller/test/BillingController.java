@@ -13,6 +13,7 @@ import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.service.subscription.SubscriptionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -25,6 +26,7 @@ import java.util.Map;
 @Controller
 @RequestMapping("/test")
 @RequiredArgsConstructor
+@Profile("dev")
 public class BillingController {
 
     private final SubscriptionService subscriptionService;

@@ -38,7 +38,7 @@
                 // 4. 빌링(자동결제) 인증 요청 - SDK v2 방식 (payment 객체 사용)
                 await payment.requestBillingAuth({
                     method: "CARD", 
-                    successUrl: window.location.origin + '/test/success',
+                    successUrl: window.location.origin + '/test/auth-key',
                     failUrl: window.location.origin + '/test/fail',
                     customerEmail: customerEmail,
                     customerName: customerName
