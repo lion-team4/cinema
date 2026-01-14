@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -47,16 +48,28 @@ public class SubscriptionService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // 2. 이미 구독 중인지 확인
-        if (subscriptionRepository.existsBySubscriber(user)) {
-            Subscription existing = subscriptionRepository.findBySubscriber(user).get();
-            if (existing.getStatus() == SubscriptionStatus.ACTIVE) {
-                 throw new IllegalStateException("이미 활성화된 구독이 있습니다.");
+        // [수정된 로직] 이미 구독 레코드가 있는 경우
+        Optional<Subscription> existingOpt = subscriptionRepository.findBySubscriber(user);
+
+        if (existingOpt.isPresent()) {
+            Subscription subscription = existingOpt.get();
+
+            // 1. 이미 사용 중인 유저면 에러
+            if (subscription.getIsActive() && subscription.getStatus() == SubscriptionStatus.ACTIVE) {
+                throw new IllegalStateException("이미 활성화된 구독이 있습니다.");
             }
-            // 만약 해지된(CANCELED, EXPIRED) 구독이라면 아래 로직 진행 (새로 생성하거나 재활성화)
-            // 여기서는 심플하게 '구독 레코드가 있으면 에러' 처리하거나, 정책에 따라 재가입 허용 가능.
-            // 일단 '이미 있으면 불가'로 처리하고, 재가입은 별도 로직이 필요할 수 있음.
-             throw new IllegalStateException("이미 구독 정보가 존재합니다. (해지 후 재가입은 추후 지원)");
+
+            // 2. 해지(CANCELED) 혹은 만료(EXPIRED)된 유저라면 정보 업데이트(재활성화)
+            TossBillingResponse billingResponse = tossPaymentClient.issueBillingKey(
+                    request.getAuthKey(), user.getCustomerKey());
+
+            BillingKey billingKey = billingKeyRepository.save(BillingKey.of(user, billingResponse));
+
+            // 엔티티의 reActivate 메서드 호출
+            subscription.reActivate(billingKey);
+
+            // 3. 다시 첫 결제 시도
+            return processInitialPayment(subscription);
         }
 
         // 3. 고객 키 가져오기 (User 엔티티 위임)
