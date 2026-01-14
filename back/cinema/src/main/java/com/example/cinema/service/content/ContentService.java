@@ -28,7 +28,7 @@ public class ContentService {
 
     //1차 컨텐츠 등록
     @Transactional
-    public ContentResponseDto createContent(ContentRequestDto requestDto, String email) {
+    public ContentResponse createContent(ContentRequest contentRequest, String email) {
 
         User user = getUser(email);
 
@@ -37,15 +37,15 @@ public class ContentService {
             throw new AccessDeniedException("감독 등록 후에 이용가능합니다.");
 
         Content content = contentRepository.save(
-                new Content(user, requestDto.title(), requestDto.description()));
+                new Content(user, contentRequest.getTitle(), contentRequest.getDescription()));
 
-        return ContentResponseDto.from(content);
+        return ContentResponse.from(content);
     }
 
     //2차 컨텐츠 등록
     @Transactional
-    public ContentResponseDto addAssetsContent(
-                ContentAssetAttachRequest assetDto,
+    public ContentResponse addAssetsContent(
+                ContentAssetAttachRequest assetAttachRequest,
                 String email,
                 Long contentId) {
 
@@ -55,33 +55,33 @@ public class ContentService {
 
         //MediaAsset 을 dto에서 추출 후 컨텐츠에 저장
         MediaAsset poster = getAssetOrThrow(
-                assetDto.posterAssetId(), POSTER_IMAGE, "등록되지 않은 포스터입니다.");
+                assetAttachRequest.getPosterAssetId(), POSTER_IMAGE, "등록되지 않은 포스터입니다.");
         MediaAsset videoSourceAsset = getAssetOrThrow(
-                assetDto.videoSourceAssetId(), VIDEO_SOURCE, "등록되지 않은 비디오입니다.");
+                assetAttachRequest.getVideoSourceAssetId(), VIDEO_SOURCE, "등록되지 않은 비디오입니다.");
         MediaAsset videoHlsMasterAssetId = getAssetOrThrow(
-                assetDto.videoHlsMasterAssetId(),VIDEO_HLS_MASTER,"등록되지 않은 비디오입니다.");
+                assetAttachRequest.getVideoHlsMasterAssetId(),VIDEO_HLS_MASTER,"등록되지 않은 비디오입니다.");
 
         content.attachAssets(poster, videoSourceAsset, videoHlsMasterAssetId);
 
-        return ContentResponseDto.from(content);
+        return ContentResponse.from(content);
     }
 
     //수정폼 조회
     @Transactional(readOnly = true)
-    public ContentEditResponseDto getEditContent(String email, Long contentId) {
+    public ContentEditResponse getEditContent(String email, Long contentId) {
 
         User user = getUser(email);
         Content content = getContent(contentId);
         validateOwner(user, content);
 
-        return ContentEditResponseDto.from(content);
+        return ContentEditResponse.from(content);
     }
 
     //수정
     @Transactional
-    public ContentEditResponseDto updateContent(String email,
+    public ContentEditResponse updateContent(String email,
                                                 Long contentId,
-                                                ContentUpdateRequestDto updateRequestDto) {
+                                                ContentUpdateRequest updateRequest) {
         User user = getUser(email);
         Content content = getContent(contentId);
         validateOwner(user, content);
@@ -89,23 +89,24 @@ public class ContentService {
         if (content.getStatus() == ContentStatus.PUBLISHED)
             throw new AccessDeniedException("상영신청이 완료된 컨텐츠는 수정할 수 없습니다.");
 
-        //updateRequestDto -> mediaAssets 추출 후 조회
+        //updateRequest -> mediaAssets 추출 후 조회
         MediaAsset poster = getAssetOrThrow(
-                updateRequestDto.posterAssetId(), POSTER_IMAGE, "등록되지 않은 포스터입니다.");
+                updateRequest.getPosterAssetId(), POSTER_IMAGE, "등록되지 않은 포스터입니다.");
 
         MediaAsset videoSourceAsset = getAssetOrThrow(
-                updateRequestDto.videoSourceAssetId(), VIDEO_SOURCE, "등록되지 않은 비디오입니다.");
+                updateRequest.getVideoSourceAssetId(), VIDEO_SOURCE, "등록되지 않은 비디오입니다.");
 
         MediaAsset videoHlsMasterAssetId = getAssetOrThrow(
-                updateRequestDto.videoHlsMasterAssetId(),VIDEO_HLS_MASTER,"등록되지 않은 비디오입니다.");
+                updateRequest.getVideoHlsMasterAssetId(),VIDEO_HLS_MASTER,"등록되지 않은 비디오입니다.");
 
         //기본 정보 수정 및 애셋 수정
-        content.updateInfo(updateRequestDto.title(), updateRequestDto.description(), updateRequestDto.status());
+        content.updateInfo(updateRequest.getTitle(), updateRequest.getDescription(), updateRequest.getStatus());
         content.attachAssets(poster, videoSourceAsset, videoHlsMasterAssetId);
 
 
-        return ContentEditResponseDto.from(content);
+        return ContentEditResponse.from(content);
     }
+
 
     public void deleteContent(String email, Long contentId) {
         User user = getUser(email);
@@ -114,6 +115,9 @@ public class ContentService {
 
         contentRepository.deleteById(contentId);
     }
+
+
+
 
     private void validateAssetType(MediaAsset asset, AssetType expected) {
         if (asset.getAssetType() != expected) {
