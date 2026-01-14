@@ -9,7 +9,7 @@ import com.example.cinema.dto.user.UserUpdateRequest;
 import com.example.cinema.dto.user.UserUpdateResponse;
 import com.example.cinema.entity.MediaAsset;
 import com.example.cinema.entity.User;
-import com.example.cinema.repository.MediaAssetRepository;
+import com.example.cinema.repository.mediaAsset.MediaAssetRepository;
 import com.example.cinema.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;

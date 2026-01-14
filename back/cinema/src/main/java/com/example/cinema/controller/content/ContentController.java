@@ -1,4 +1,4 @@
-package com.example.cinema.controller;
+package com.example.cinema.controller.content;
 
 
 import lombok.RequiredArgsConstructor;

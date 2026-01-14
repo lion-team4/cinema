@@ -1,4 +1,4 @@
-package com.example.cinema.repository;
+package com.example.cinema.repository.payment;
 
 import com.example.cinema.entity.Payment;
 import com.example.cinema.entity.Subscription;

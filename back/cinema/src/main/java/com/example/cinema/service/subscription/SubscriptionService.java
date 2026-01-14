@@ -10,23 +10,21 @@ import com.example.cinema.entity.Payment;
 import com.example.cinema.entity.Subscription;
 import com.example.cinema.entity.User;
 import com.example.cinema.infrastructure.payment.toss.TossPaymentClient;
-import com.example.cinema.repository.BillingKeyRepository;
-import com.example.cinema.repository.PaymentRepository;
-import com.example.cinema.repository.SubscriptionRepository;
+import com.example.cinema.repository.billing.BillingKeyRepository;
+import com.example.cinema.repository.payment.PaymentRepository;
+import com.example.cinema.repository.subscription.SubscriptionRepository;
 import com.example.cinema.repository.user.UserRepository;
-import com.example.cinema.type.BillingKeyStatus;
-import com.example.cinema.type.BillingProvider;
 import com.example.cinema.type.PaymentStatus;
 import com.example.cinema.type.SubscriptionStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -131,6 +129,7 @@ public class SubscriptionService {
 
 
 
+    // 빌링키 업데이트
     @Transactional
     public SubscriptionResponse updateBillingKey(Long userId, SubscriptionUpdateBillingRequest request) {
         User user = userRepository.findById(userId)
@@ -206,8 +205,6 @@ public class SubscriptionService {
                     subscription.getPrice()
             );
         } catch (Exception e) {
-            // 결제 요청 실패 시 구독 취소 처리 (Rollback 개념)
-            // Transactional이므로 예외 던지면 DB 롤백됨.
             throw new RuntimeException("초기 결제 요청 중 오류가 발생했습니다: " + e.getMessage());
         }
 
@@ -215,11 +212,8 @@ public class SubscriptionService {
                 .save(Payment.create(subscription, paymentResponse));
 
         if (payment.getStatus() == PaymentStatus.FAILED) {
-            // 결제 실패 시 예외를 던져 트랜잭션 롤백 (구독 생성 취소)
             throw new IllegalStateException("초기 결제 승인이 거절되었습니다.");
         }
-
-
 
         return FirstSubscriptionResponse.from(
                 SubscriptionResponse.from(subscription),
@@ -227,10 +221,27 @@ public class SubscriptionService {
         );
     }
 
+    // 만료된 구독 목록 조회 (스케줄러용)
+    public List<Subscription> findExpiredSubscriptions(LocalDateTime dateTime) {
+        return subscriptionRepository.findByStatusAndCurrentPeriodEndBefore(
+                SubscriptionStatus.ACTIVE, dateTime
+        );
+    }
 
-    //정기 결제 (스케줄러 등에서 호출)
-    @Transactional
-    public void processRecurringPayment(Subscription subscription) {
+    //테스트용
+    public List<Subscription> findAllSubscriptionForTest(){
+        return  subscriptionRepository.findAll();
+    }
+
+
+    // 정기 결제 (단건 처리, 트랜잭션 분리)
+    // REQUIRES_NEW: 독립 트랜잭션 보장
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void processRecurringPayment(Long subscriptionId) {
+        // 스레드 안전성을 위해 ID로 다시 조회 (영속성 컨텍스트 분리)
+        Subscription subscription = subscriptionRepository.findById(subscriptionId)
+                .orElseThrow(() -> new IllegalArgumentException("Subscription not found: " + subscriptionId));
+
         if (subscription.getStatus() != SubscriptionStatus.ACTIVE) return;
         if (subscription.getBillingKey() == null) return;
 
@@ -253,18 +264,18 @@ public class SubscriptionService {
                 // 기간 연장
                 subscription.extensionPeriod();
                 subscription.renew();
-
-                subscriptionRepository.save(subscription);
             } else {
-                // 결제 실패 시 -> 보류/해지 등 정책 처리 (여기선 만료 처리)
-                subscription.cancel(); // 또는 EXPIRED
-                subscriptionRepository.save(subscription);
+                // 결제 실패
+                subscription.cancel();
             }
+            // Dirty Checking으로 자동 저장됨 (Transaction 종료 시)
 
         } catch (Exception e) {
-            // 시스템 오류 등으로 결제 실패
-             subscription.cancel();
-             subscriptionRepository.save(subscription);
+            log.error("Recurring payment failed for subId: {}", subscriptionId, e);
+            // 시스템 오류 시에도 상태 업데이트를 위해 별도 처리하거나,
+            // 현재 트랜잭션 롤백 후 재시도 로직이 필요할 수 있음.
+            // 여기서는 안전하게 '구독 취소' 처리 시도
+            subscription.cancel();
         }
     }
 
