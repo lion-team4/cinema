@@ -1,5 +1,6 @@
 package com.example.cinema.entity;
 
+import com.example.cinema.dto.content.ContentRequest;
 import com.example.cinema.entity.common.BaseEntity;
 import com.example.cinema.type.ContentStatus;
 import jakarta.persistence.*;
