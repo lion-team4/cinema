@@ -100,6 +100,7 @@ public class ProjectSecurityConfig {
 
                         // 구독
                         .requestMatchers(
+                                "/users/subscription",
                                 "/users/subscriptions",
                                 "/users/subscriptions/**"
                         ).authenticated()
