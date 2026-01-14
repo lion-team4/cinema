@@ -1,4 +1,4 @@
-package com.example.cinema.config.auth;
+package com.example.cinema.config.common;
 
 import com.example.cinema.entity.User;
 import lombok.Getter;

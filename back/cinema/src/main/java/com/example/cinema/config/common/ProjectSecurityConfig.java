@@ -1,4 +1,4 @@
-package com.example.cinema.config.auth;
+package com.example.cinema.config.common;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

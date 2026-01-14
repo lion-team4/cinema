@@ -1,4 +1,4 @@
-package com.example.cinema.config.auth;
+package com.example.cinema.config.common;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

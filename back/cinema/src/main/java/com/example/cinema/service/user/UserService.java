@@ -1,6 +1,6 @@
 package com.example.cinema.service.user;
 
-import com.example.cinema.config.auth.JwtTokenProvider;
+import com.example.cinema.config.common.JwtTokenProvider;
 import com.example.cinema.dto.auth.LoginRequest;
 import com.example.cinema.dto.auth.SignupRequest;
 import com.example.cinema.dto.auth.TokenResponse;

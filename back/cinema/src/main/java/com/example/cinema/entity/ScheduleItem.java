@@ -37,4 +37,9 @@ public class ScheduleItem extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ScheduleStatus status;
+
+    public void update(LocalDateTime startAt, LocalDateTime endAt) {
+        this.startAt = startAt;
+        this.endAt = endAt;
+    }
 }

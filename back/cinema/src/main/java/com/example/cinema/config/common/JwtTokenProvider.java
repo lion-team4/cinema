@@ -1,4 +1,4 @@
-package com.example.cinema.config.auth;
+package com.example.cinema.config.common;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;

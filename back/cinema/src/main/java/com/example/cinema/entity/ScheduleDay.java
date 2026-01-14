@@ -1,6 +1,7 @@
 package com.example.cinema.entity;
 
 import com.example.cinema.entity.common.BaseEntity;
+import com.example.cinema.type.ContentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -33,4 +34,10 @@ public class ScheduleDay extends BaseEntity {
 
     @Column(name = "locked_at")
     private LocalDateTime lockedAt;
+
+    public void updateLock(Boolean isLocked, LocalDateTime lockedAt) {
+        this.isLocked = isLocked;
+        this.lockedAt = lockedAt;
+
+    }
 }
