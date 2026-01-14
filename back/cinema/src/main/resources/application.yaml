@@ -1,12 +1,14 @@
+server:
+  port: 8080
+
 spring:
   application:
     name: cinema
   datasource:
-    url: jdbc:mysql://localhost:3306/cinema_db
-    username: root
-    password: root1234
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
+    url: jdbc:h2:mem:cinema;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
   jpa:
     hibernate:
       ddl-auto: update
@@ -25,9 +27,16 @@ jwt:
 aws:
   region: ap-northeast-2
   s3:
-    bucket-name: "lion-cinema-content-team4"
+    bucket: lion-cinema-content-team4
+    bucket-name: lion-cinema-content-team4
   cloudfront:
     domain: "https://d3q8b3ts21eo3m.cloudfront.net"
+
+transcode:
+  workdir: /tmp/work
+  ffmpeg:
+    dockerImage: jrottenberg/ffmpeg:6.0-alpine
+    segmentSeconds: 6
 
 springdoc:
   swagger-ui:
