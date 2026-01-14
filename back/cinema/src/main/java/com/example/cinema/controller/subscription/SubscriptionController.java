@@ -1,11 +1,10 @@
 package com.example.cinema.controller.subscription;
 
-import com.example.cinema.config.auth.CustomUserDetails;
+import com.example.cinema.config.common.CustomUserDetails;
 import com.example.cinema.dto.common.ApiResponse;
 import com.example.cinema.dto.common.PageResponse;
 import com.example.cinema.dto.subscription.*;
 import com.example.cinema.service.subscription.SubscriptionService;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

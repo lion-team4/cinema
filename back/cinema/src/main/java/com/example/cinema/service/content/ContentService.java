@@ -5,8 +5,8 @@ import com.example.cinema.dto.content.*;
 import com.example.cinema.entity.Content;
 import com.example.cinema.entity.MediaAsset;
 import com.example.cinema.entity.User;
-import com.example.cinema.repository.MediaAssetRepository;
 import com.example.cinema.repository.content.ContentRepository;
+import com.example.cinema.repository.mediaAsset.MediaAssetRepository;
 import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.type.AssetType;
 import com.example.cinema.type.ContentStatus;
@@ -14,8 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.NoSuchElementException;
-import java.util.Optional;
 
 import static com.example.cinema.type.AssetType.*;
 
