@@ -14,6 +14,7 @@ import com.example.cinema.type.PaymentStatus;
 import com.example.cinema.type.SubscriptionStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional
 @Slf4j
+@Profile("dev")
 public class BillingTestService {
 
     private final UserRepository userRepository;

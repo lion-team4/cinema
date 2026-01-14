@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>authKey 발급 - Postman 테스트용</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .info-box {
+            background: #f7fafc;
+            border-left: 4px solid #4299e1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .info-box h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .info-box p {
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .auth-key-section {
+            margin-bottom: 30px;
+        }
+        
+        .auth-key-label {
+            display: block;
+            color: #4a5568;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .auth-key-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .auth-key-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            background: #f7fafc;
+            color: #2d3748;
+            word-break: break-all;
+        }
+        
+        .auth-key-input:focus {
+            outline: none;
+            border-color: #4299e1;
+            background: white;
+        }
+        
+        .copy-btn {
+            padding: 12px 24px;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        
+        .copy-btn:hover {
+            background: #3182ce;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+        }
+        
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+        
+        .copy-btn.copied {
+            background: #48bb78;
+        }
+        
+        .steps {
+            background: #f7fafc;
+            padding: 24px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        
+        .steps h3 {
+            color: #2d3748;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+        
+        .step {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            align-items: flex-start;
+        }
+        
+        .step-number {
+            background: #4299e1;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .step-content {
+            flex: 1;
+            padding-top: 4px;
+        }
+        
+        .step-title {
+            color: #2d3748;
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+        
+        .step-description {
+            color: #718096;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 8px;
+            overflow-x: auto;
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .alert-warning {
+            background: #fef5e7;
+            border-left: 4px solid #f6ad55;
+            color: #744210;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-primary {
+            background: #4299e1;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3182ce;
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 authKey 발급 완료</h1>
+        <p class="subtitle">Postman 테스트에 사용할 authKey를 발급받았습니다.</p>
+        
+        <div class="alert alert-warning">
+            ⚠️ <strong>주의:</strong> authKey는 유효 기간이 짧습니다. 발급 후 바로 사용하세요!
+        </div>
+        
+        <div class="auth-key-section">
+            <label class="auth-key-label">발급받은 authKey</label>
+            <div class="auth-key-container">
+                <input 
+                    type="text" 
+                    id="authKeyInput" 
+                    class="auth-key-input" 
+                    th:value="${authKey}"
+                    readonly
+                >
+                <button class="copy-btn" onclick="copyAuthKey()">📋 복사</button>
+            </div>
+        </div>
+        
+        <div class="steps">
+            <h3>📝 Postman 사용 방법</h3>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title">authKey 복사</div>
+                    <div class="step-description">위의 "복사" 버튼을 클릭하여 authKey를 복사합니다.</div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">Postman에서 구독 생성 API 호출</div>
+                    <div class="step-description">
+                        POST /users/subscriptions 엔드포인트를 호출합니다.
+                        <div class="code-block">
+POST {{base_url}}/users/subscriptions<br>
+Authorization: Bearer {{access_token}}<br>
+Content-Type: application/json<br><br>
+{<br>
+&nbsp;&nbsp;"authKey": "복사한_authKey_값"<br>
+}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">결과 확인</div>
+                    <div class="step-description">API 응답을 확인하여 구독이 정상적으로 생성되었는지 확인합니다.</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <a th:href="@{/test/billing}" class="btn btn-secondary">← 카드 등록 페이지로</a>
+        </div>
+    </div>
+    
+    <script>
+        function copyAuthKey() {
+            const authKeyInput = document.getElementById('authKeyInput');
+            authKeyInput.select();
+            authKeyInput.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                document.execCommand('copy');
+                
+                // 버튼 스타일 변경
+                const copyBtn = event.target;
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✓ 복사됨!';
+                copyBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                alert('복사에 실패했습니다. 직접 선택하여 복사해주세요.');
+            }
+        }
+        
+        // authKey가 없으면 메시지 표시
+        window.addEventListener('DOMContentLoaded', function() {
+            const authKey = document.getElementById('authKeyInput').value;
+            if (!authKey || authKey.trim() === '') {
+                const container = document.querySelector('.container');
+                container.innerHTML = `
+                    <h1>⚠️ authKey를 찾을 수 없습니다</h1>
+                    <p class="subtitle">카드 등록 페이지로 돌아가서 다시 시도해주세요.</p>
+                    <div class="btn-group">
+                        <a href="/test/billing" class="btn btn-primary">카드 등록 페이지로</a>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
+
