@@ -1,0 +1,307 @@
+package com.example.cinema.service.subscription;
+
+import com.example.cinema.dto.billing.BillingResponse;
+import com.example.cinema.dto.common.PageResponse;
+import com.example.cinema.dto.subscription.*;
+import com.example.cinema.infrastructure.payment.toss.dto.TossBillingResponse;
+import com.example.cinema.infrastructure.payment.toss.dto.TossPaymentResponse;
+import com.example.cinema.entity.BillingKey;
+import com.example.cinema.entity.Payment;
+import com.example.cinema.entity.Subscription;
+import com.example.cinema.entity.User;
+import com.example.cinema.infrastructure.payment.toss.TossPaymentClient;
+import com.example.cinema.repository.billing.BillingKeyRepository;
+import com.example.cinema.repository.payment.PaymentRepository;
+import com.example.cinema.repository.subscription.SubscriptionRepository;
+import com.example.cinema.repository.user.UserRepository;
+import com.example.cinema.type.PaymentStatus;
+import com.example.cinema.type.SubscriptionStatus;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+@Slf4j
+public class SubscriptionService {
+
+    private final SubscriptionRepository subscriptionRepository;
+    private final BillingKeyRepository billingKeyRepository;
+    private final PaymentRepository paymentRepository;
+    private final UserRepository userRepository;
+    private final TossPaymentClient tossPaymentClient;
+
+
+    // 구독 생성 및 초기 결제
+    @Transactional
+    public FirstSubscriptionResponse createSubscription(Long userId, SubscriptionCreateRequest request) {
+        // 1. 유저 확인
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // [수정된 로직] 이미 구독 레코드가 있는 경우
+        Optional<Subscription> existingOpt = subscriptionRepository.findBySubscriber(user);
+
+        if (existingOpt.isPresent()) {
+            Subscription subscription = existingOpt.get();
+
+            // 1. 이미 사용 중인 유저면 에러
+            if (subscription.getIsActive() && subscription.getStatus() == SubscriptionStatus.ACTIVE) {
+                throw new IllegalStateException("이미 활성화된 구독이 있습니다.");
+            }
+
+            // 2. 해지(CANCELED) 혹은 만료(EXPIRED)된 유저라면 정보 업데이트(재활성화)
+            TossBillingResponse billingResponse = tossPaymentClient.issueBillingKey(
+                    request.getAuthKey(), user.getCustomerKey());
+
+            BillingKey billingKey = billingKeyRepository.save(BillingKey.of(user, billingResponse));
+
+            // 엔티티의 reActivate 메서드 호출
+            subscription.reActivate(billingKey);
+
+            // 3. 다시 첫 결제 시도
+            return processInitialPayment(subscription);
+        }
+
+        // 3. 고객 키 가져오기 (User 엔티티 위임)
+        String customerKey = user.getCustomerKey();
+
+        // 4. Toss API 빌링키 발급 요청
+        TossBillingResponse billingResponse = tossPaymentClient.issueBillingKey(
+                request.getAuthKey(),
+                customerKey
+        );
+
+        // 5. 빌링키 Entity 저장 (정적 팩토리 메서드 사용)
+        BillingKey billingKey =
+                billingKeyRepository.save(
+                                BillingKey.of(user, billingResponse)
+                        );
+
+        log.info("Billing: {}", billingKey.getBillingKey());
+        log.info("Customer: {}", billingKey.getCustomerKey());
+
+        // 6. Subscription Entity 생성
+        Subscription subscription =
+                subscriptionRepository.save(
+                        Subscription.create(user,billingKey)
+                );
+
+        // 7. 초기 결제 처리
+        return processInitialPayment(subscription);
+    }
+
+
+
+    //구독 정보 조회
+    public SubscriptionResponse getMySubscription(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Subscription subscription = subscriptionRepository.findBySubscriber(user)
+                .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
+
+        return SubscriptionResponse.from(subscription);
+    }
+
+
+
+    // 결제 내역 조회
+    public PageResponse<PaymentHistoryResponse> getPaymentHistory(
+            Long userId,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Pageable pageable
+    ) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Subscription subscription = subscriptionRepository.findBySubscriber(user)
+                .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
+
+
+        var paymentPage = (startDate != null && endDate != null)
+                ? paymentRepository.findBySubscriptionAndPaidAtBetween(
+                        subscription, startDate, endDate, pageable
+                )
+                : paymentRepository.findBySubscription(subscription, pageable);
+
+        return PageResponse.from(
+                paymentPage.map(PaymentHistoryResponse::from)
+        );
+    }
+
+
+
+    // 빌링키 업데이트
+    @Transactional
+    public SubscriptionResponse updateBillingKey(Long userId, SubscriptionUpdateBillingRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Subscription subscription = subscriptionRepository.findBySubscriber(user)
+                .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
+
+        // 기존 빌링키 비활성화
+        if (subscription.getBillingKey() != null) {
+            billingKeyRepository.save(subscription.getBillingKey().revoke());
+        }
+
+        // 새 빌링키 발급
+        String customerKey = user.getCustomerKey();
+        TossBillingResponse billingResponse = tossPaymentClient.issueBillingKey(
+                request.getAuthKey(),
+                customerKey
+        );
+
+        // 새 빌링키 저장
+        BillingKey newBillingKey = billingKeyRepository.save(BillingKey.of(user, billingResponse));
+
+        // 구독 정보 업데이트
+        // Subscription 엔티티에 updateBillingKey 메서드가 있으면 좋겠지만, 여기서는 Builder로 처리
+        subscription.updateBullingKey(newBillingKey);
+
+        return SubscriptionResponse.from(subscription);
+    }
+
+    // 구독 취소
+    @Transactional
+    public void cancelSubscription(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Subscription subscription = subscriptionRepository.findBySubscriber(user)
+                .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
+
+        // 구독 취소 (Entity 메서드 활용)
+        subscription.cancel();
+        subscriptionRepository.save(subscription);
+
+        // 빌링키도 해지(REVOKED) 처리
+        if (subscription.getBillingKey() != null) {
+            billingKeyRepository.save(subscription.getBillingKey().revoke());
+        }
+    }
+
+    public BillingResponse getBilling(Long userId){
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Subscription subscription = subscriptionRepository.findBySubscriber(user)
+                .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
+
+        return BillingResponse.from(subscription.getBillingKey());
+    }
+
+    // --- 내부 결제 로직 ---
+    // 최초 결제
+    private FirstSubscriptionResponse processInitialPayment(Subscription subscription) {
+        String orderId = "ORDER_INIT_" + UUID.randomUUID().toString().substring(0, 18);
+        String orderName = subscription.getName() + " (최초결제)";
+
+        TossPaymentResponse paymentResponse = null;
+        try {
+            paymentResponse = tossPaymentClient.requestPayment(
+                    subscription.getBillingKey().getBillingKey(),
+                    subscription.getBillingKey().getCustomerKey(),
+                    orderId,
+                    orderName,
+                    subscription.getPrice()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("초기 결제 요청 중 오류가 발생했습니다: " + e.getMessage());
+        }
+
+        Payment payment = paymentRepository
+                .save(Payment.create(subscription, paymentResponse));
+
+        if (payment.getStatus() == PaymentStatus.FAILED) {
+            throw new IllegalStateException("초기 결제 승인이 거절되었습니다.");
+        }
+
+        return FirstSubscriptionResponse.from(
+                SubscriptionResponse.from(subscription),
+                PaymentHistoryResponse.from(payment)
+        );
+    }
+
+    // 만료된 구독 목록 조회 (스케줄러용)
+    public List<Subscription> findExpiredSubscriptions(LocalDateTime dateTime) {
+        return subscriptionRepository.findByStatusAndCurrentPeriodEndBefore(
+                SubscriptionStatus.ACTIVE, dateTime
+        );
+    }
+
+    //테스트용
+    public List<Subscription> findAllSubscriptionForTest(){
+        return  subscriptionRepository.findAll();
+    }
+
+
+    // 정기 결제 (단건 처리, 트랜잭션 분리)
+    // REQUIRES_NEW: 독립 트랜잭션 보장
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void processRecurringPayment(Long subscriptionId) {
+        // 스레드 안전성을 위해 ID로 다시 조회 (영속성 컨텍스트 분리)
+        Subscription subscription = subscriptionRepository.findById(subscriptionId)
+                .orElseThrow(() -> new IllegalArgumentException("Subscription not found: " + subscriptionId));
+
+        if (subscription.getStatus() != SubscriptionStatus.ACTIVE) return;
+        if (subscription.getBillingKey() == null) return;
+
+        String orderId = "ORDER_REC_" + UUID.randomUUID().toString().substring(0, 18);
+        String orderName = subscription.getName() + " (정기결제)";
+
+        try {
+            TossPaymentResponse paymentResponse = tossPaymentClient.requestPayment(
+                    subscription.getBillingKey().getBillingKey(),
+                    subscription.getBillingKey().getCustomerKey(),
+                    orderId,
+                    orderName,
+                    subscription.getPrice()
+            );
+
+            Payment payment = paymentRepository
+                    .save(Payment.create(subscription, paymentResponse));
+
+            if (payment.getStatus() == PaymentStatus.APPROVED) {
+                // 기간 연장
+                subscription.extensionPeriod();
+                subscription.renew();
+            } else {
+                // 결제 실패
+                subscription.cancel();
+            }
+            // Dirty Checking으로 자동 저장됨 (Transaction 종료 시)
+
+        } catch (Exception e) {
+            log.error("Recurring payment failed for subId: {}", subscriptionId, e);
+            // 시스템 오류 시에도 상태 업데이트를 위해 별도 처리하거나,
+            // 현재 트랜잭션 롤백 후 재시도 로직이 필요할 수 있음.
+            // 여기서는 안전하게 '구독 취소' 처리 시도
+            subscription.cancel();
+        }
+    }
+
+    private LocalDateTime parseDateTime(String dateTimeStr) {
+        try {
+            if (dateTimeStr.contains("T")) {
+                String cleaned = dateTimeStr.split("\\+")[0].split("Z")[0];
+                if (cleaned.length() > 19) cleaned = cleaned.substring(0, 19);
+                return LocalDateTime.parse(cleaned);
+            }
+            return LocalDateTime.parse(dateTimeStr);
+        } catch (Exception e) {
+            return LocalDateTime.now();
+        }
+    }
+}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>토스페이먼츠 정기결제 테스트 (SDK v2)</title>
+    <!-- 1. SDK v2 스크립트 로드 -->
+    <script src="https://js.tosspayments.com/v2/standard"></script>
+</head>
+<body>
+<!--테스트용-->
+    <h1>정기결제 카드 등록 테스트 (SDK v2)</h1>
+    <p>아래 버튼을 눌러 카드를 등록하세요.</p>
+    
+    <div style="background-color: #f9f9f9; padding: 10px; margin-bottom: 20px; border-radius: 5px;">
+        <p><strong>Customer Key:</strong> <span th:text="${customerKey}"></span></p>
+        <p><strong>Name:</strong> <span th:text="${customerName}"></span></p>
+        <p><strong>Email:</strong> <span th:text="${customerEmail}"></span></p>
+    </div>
+
+    <button id="card-button" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">카드 등록하기 (자동결제)</button>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const clientKey = /*[[${clientKey}]]*/ 'test_ck_...';
+        const customerKey = /*[[${customerKey}]]*/ 'test_customer_key';
+        const customerEmail = /*[[${customerEmail}]]*/ '';
+        const customerName = /*[[${customerName}]]*/ '';
+        /*]]>*/
+
+        // 2. 초기화 (Client Key 사용)
+        const tossPayments = TossPayments(clientKey);
+        
+        // 3. Payment 객체 생성 (CustomerKey 필수)
+        const payment = tossPayments.payment({ customerKey });
+
+        document.getElementById('card-button').addEventListener('click', async function () {
+            try {
+                // 4. 빌링(자동결제) 인증 요청 - SDK v2 방식 (payment 객체 사용)
+                await payment.requestBillingAuth({
+                    method: "CARD", 
+                    successUrl: window.location.origin + '/test/auth-key',
+                    failUrl: window.location.origin + '/test/fail',
+                    customerEmail: customerEmail,
+                    customerName: customerName
+                });
+            } catch (error) {
+                if (error.code === 'USER_CANCEL') {
+                    console.log("사용자가 결제창을 닫았습니다.");
+                } else {
+                    console.error("에러 발생:", error);
+                    alert(error.message);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

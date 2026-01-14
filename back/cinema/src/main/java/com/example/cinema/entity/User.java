@@ -32,6 +32,10 @@ public class User extends BaseEntity {
     @JoinColumn(name = "profile_image_asset_id")
     private MediaAsset profileImage;
 
+    //내 구독 정보
+    @OneToOne(fetch = FetchType.LAZY)
+    private Subscription subscription;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
@@ -50,5 +54,8 @@ public class User extends BaseEntity {
         if (profileImage != null) {
             this.profileImage = profileImage;
         }
+    }
+    public String getCustomerKey(){
+        return "CUSTOMER_" + this.userId;
     }
 }

@@ -52,6 +52,18 @@ public class Content extends BaseEntity {
     @Builder.Default
     private Long monthView = 0L;
 
+    /**
+     * 월별 조회수 초기화 (정산 완료 후 다음 달을 위해)
+     */
+    public void resetMonthView() {
+        this.monthView = 0L;
+    }
 
-
+    /**
+     * 조회수 증가 (totalView와 monthView 모두 증가)
+     */
+    public void incrementView() {
+        this.totalView = (this.totalView == null ? 0L : this.totalView) + 1;
+        this.monthView = (this.monthView == null ? 0L : this.monthView) + 1;
+    }
 }
