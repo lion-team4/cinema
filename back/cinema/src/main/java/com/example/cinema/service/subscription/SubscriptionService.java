@@ -86,8 +86,8 @@ public class SubscriptionService {
         // 5. 빌링키 Entity 저장 (정적 팩토리 메서드 사용)
         BillingKey billingKey =
                 billingKeyRepository.save(
-                                BillingKey.of(user, billingResponse)
-                        );
+                        BillingKey.of(user, billingResponse)
+                );
 
         log.info("Billing: {}", billingKey.getBillingKey());
         log.info("Customer: {}", billingKey.getCustomerKey());
@@ -133,8 +133,8 @@ public class SubscriptionService {
 
         var paymentPage = (startDate != null && endDate != null)
                 ? paymentRepository.findBySubscriptionAndPaidAtBetween(
-                        subscription, startDate, endDate, pageable
-                )
+                subscription, startDate, endDate, pageable
+        )
                 : paymentRepository.findBySubscription(subscription, pageable);
 
         return PageResponse.from(
