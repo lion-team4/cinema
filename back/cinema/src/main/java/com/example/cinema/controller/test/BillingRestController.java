@@ -2,8 +2,7 @@ package com.example.cinema.controller.test;
 
 import com.example.cinema.entity.Subscription;
 import com.example.cinema.entity.User;
-import com.example.cinema.infrastructure.payment.toss.dto.TossPaymentResponse;
-import com.example.cinema.repository.SubscriptionRepository;
+import com.example.cinema.repository.subscription.SubscriptionRepository;
 import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.service.subscription.SubscriptionService;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +35,7 @@ public class BillingRestController {
         Subscription subscription = subscriptionRepository.findBySubscriber(user)
                 .orElseThrow(() -> new RuntimeException("Subscription not found"));
 
-        subscriptionService.processRecurringPayment(subscription);
+        subscriptionService.processRecurringPayment(subscription.getSubscriptionId());
 
         return "Payment processed successfully (Amount determined by subscription plan)";
     }

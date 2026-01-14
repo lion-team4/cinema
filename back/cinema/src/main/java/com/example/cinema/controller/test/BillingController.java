@@ -6,11 +6,9 @@ import com.example.cinema.dto.subscription.FirstSubscriptionResponse;
 import com.example.cinema.dto.subscription.PaymentHistoryResponse;
 import com.example.cinema.dto.subscription.SubscriptionCreateRequest;
 import com.example.cinema.dto.subscription.SubscriptionResponse;
-import com.example.cinema.entity.Payment;
 import com.example.cinema.entity.Subscription;
 import com.example.cinema.entity.User;
-import com.example.cinema.infrastructure.payment.toss.dto.TossBillingResponse;
-import com.example.cinema.repository.SubscriptionRepository;
+import com.example.cinema.repository.subscription.SubscriptionRepository;
 import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.service.subscription.SubscriptionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,7 +19,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -135,9 +132,9 @@ public class BillingController {
                     .orElseThrow(() -> new RuntimeException("User not found"));
             
             Subscription subscription = subscriptionRepository.findBySubscriber(user)
-                    .orElseThrow(() -> new RuntimeException("구독 정보 없음"));
+                    .orElseThrow(() -> new RuntimeException("Subscription not found"));
 
-            subscriptionService.processRecurringPayment(subscription);
+            subscriptionService.processRecurringPayment(subscription.getSubscriptionId());
             
             return "redirect:/test/history?nickname=" + nickname;
         } catch (Exception e) {

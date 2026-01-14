@@ -1,4 +1,4 @@
-package com.example.cinema.repository;
+package com.example.cinema.repository.content;
 
 
 import com.example.cinema.entity.Content;
