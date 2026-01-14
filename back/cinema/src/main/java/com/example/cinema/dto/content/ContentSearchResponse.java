@@ -6,6 +6,8 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.List;
+
 /**
  * 콘텐츠 검색 및 목록 조회 응답 DTO
  * <p>
@@ -29,6 +31,7 @@ public class ContentSearchResponse {
     private final ContentStatus status;
     private final String ownerNickname;
     private final Long totalView;
+
 
     public static ContentSearchResponse from(Content content) {
         return new ContentSearchResponse(
