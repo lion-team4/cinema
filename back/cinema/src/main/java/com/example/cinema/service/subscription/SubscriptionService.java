@@ -225,6 +225,8 @@ public class SubscriptionService {
                     subscription.getPrice()
             );
         } catch (Exception e) {
+            // 결제 요청 실패 시 구독 취소 처리 (Rollback 개념)
+            // Transactional이므로 예외 던지면 DB 롤백됨.
             throw new RuntimeException("초기 결제 요청 중 오류가 발생했습니다: " + e.getMessage());
         }
 
@@ -232,6 +234,7 @@ public class SubscriptionService {
                 .save(Payment.create(subscription, paymentResponse));
 
         if (payment.getStatus() == PaymentStatus.FAILED) {
+            // 결제 실패 시 예외를 던져 트랜잭션 롤백 (구독 생성 취소)
             throw new IllegalStateException("초기 결제 승인이 거절되었습니다.");
         }
 
