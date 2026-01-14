@@ -18,8 +18,6 @@ import com.example.cinema.repository.billing.BillingKeyRepository;
 import com.example.cinema.repository.payment.PaymentRepository;
 import com.example.cinema.repository.subscription.SubscriptionRepository;
 import com.example.cinema.repository.user.UserRepository;
-import com.example.cinema.type.BillingKeyStatus;
-import com.example.cinema.type.BillingProvider;
 import com.example.cinema.type.PaymentStatus;
 import com.example.cinema.type.SubscriptionStatus;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +43,6 @@ public class SubscriptionService {
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
     private final TossPaymentClient tossPaymentClient;
-
 
 
     // 구독 생성 및 초기 결제
@@ -91,8 +88,8 @@ public class SubscriptionService {
         // 5. 빌링키 Entity 저장 (정적 팩토리 메서드 사용)
         BillingKey billingKey =
                 billingKeyRepository.save(
-                                BillingKey.of(user, billingResponse)
-                        );
+                        BillingKey.of(user, billingResponse)
+                );
 
         log.info("Billing: {}", billingKey.getBillingKey());
         log.info("Customer: {}", billingKey.getCustomerKey());
@@ -138,8 +135,8 @@ public class SubscriptionService {
 
         var paymentPage = (startDate != null && endDate != null)
                 ? paymentRepository.findBySubscriptionAndPaidAtBetween(
-                        subscription, startDate, endDate, pageable
-                )
+                subscription, startDate, endDate, pageable
+        )
                 : paymentRepository.findBySubscription(subscription, pageable);
 
         return PageResponse.from(
@@ -225,8 +222,6 @@ public class SubscriptionService {
                     subscription.getPrice()
             );
         } catch (Exception e) {
-            // 결제 요청 실패 시 구독 취소 처리 (Rollback 개념)
-            // Transactional이므로 예외 던지면 DB 롤백됨.
             throw new RuntimeException("초기 결제 요청 중 오류가 발생했습니다: " + e.getMessage());
         }
 
@@ -234,7 +229,6 @@ public class SubscriptionService {
                 .save(Payment.create(subscription, paymentResponse));
 
         if (payment.getStatus() == PaymentStatus.FAILED) {
-            // 결제 실패 시 예외를 던져 트랜잭션 롤백 (구독 생성 취소)
             throw new IllegalStateException("초기 결제 승인이 거절되었습니다.");
         }
 
@@ -256,12 +250,6 @@ public class SubscriptionService {
         return  subscriptionRepository.findAll();
     }
 
-    /**
-     * 초기 결제 처리
-     */
-    private void processInitialPayment(Subscription subscription) {
-        String orderId = "ORDER_" + UUID.randomUUID().toString().replace("-", "");
-        String orderName = subscription.getName() + " 초기결제";
 
     // 정기 결제 (단건 처리, 트랜잭션 분리)
     // REQUIRES_NEW: 독립 트랜잭션 보장
@@ -308,19 +296,8 @@ public class SubscriptionService {
         }
     }
 
-    /**
-     * 고객 키 생성 (사용자별 고유 키)
-     */
-    private String generateCustomerKey(User user) {
-        return "CUSTOMER_" + user.getUserId();
-    }
-
-    /**
-     * 날짜 문자열을 LocalDateTime으로 변환
-     */
     private LocalDateTime parseDateTime(String dateTimeStr) {
         try {
-            // ISO 8601 형식: "2024-01-01T12:00:00+09:00" 또는 "2024-01-01T12:00:00"
             if (dateTimeStr.contains("T")) {
                 String cleaned = dateTimeStr.split("\\+")[0].split("Z")[0];
                 if (cleaned.length() > 19) cleaned = cleaned.substring(0, 19);
