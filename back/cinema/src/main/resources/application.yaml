@@ -5,7 +5,6 @@ spring:
     url: jdbc:mysql://localhost:3306/cinema_db
     username: root
     password: root1234
-
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -22,3 +21,18 @@ logging:
 
 jwt:
   secret: VGhpc0lzQVZlcnlMb25nU2VjcmV0S2V5Rm9yVGhlQ2luZW1hQXBwbGljYXRpb25UaGF0SXNEZWZpbml0ZWx5TW9yZVRoYW41MTJCaXRzQW5kU2hvdWxkQmVTZWN1cmVFbm91Z2hGb3JIUzUxMkFsZ29yaXRobUNoZWNr
+
+aws:
+  region: ap-northeast-2
+  s3:
+    bucket-name: "lion-cinema-content-team4"
+  cloudfront:
+    domain: "https://d3q8b3ts21eo3m.cloudfront.net"
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+  api-docs:
+    path: /api-docs
