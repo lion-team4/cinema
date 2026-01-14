@@ -1,6 +1,7 @@
 package com.example.cinema.entity;
 
 import com.example.cinema.entity.common.BaseEntity;
+import com.example.cinema.infrastructure.payment.toss.dto.TossPaymentResponse;
 import com.example.cinema.type.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -48,4 +49,17 @@ public class Payment extends BaseEntity {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
+
+    public static Payment create(Subscription subscription, TossPaymentResponse response){
+        return Payment.builder()
+                .subscription(subscription)
+                .providerPaymentId(response.getPaymentKey())
+                .amount(response.getBalanceAmount())
+                .orderId(response.getOrderId())
+                .orderName(response.getOrderName())
+                .status(PaymentStatus.tossPaymentStatus(response.getStatus()))
+                .paidAt(response.getApprovedAt() != null ? LocalDateTime.parse(response.getApprovedAt()) : LocalDateTime.now())
+                .build();
+
+    }
 }
