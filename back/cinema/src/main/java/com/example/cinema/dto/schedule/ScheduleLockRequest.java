@@ -6,5 +6,5 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class ScheduleLockRequest {
-    boolean isLock;
+    private Boolean isLock;
 }

@@ -44,13 +44,13 @@ public class ScheduleController {
      * 특정 날짜의 편성을 확정(Lock) 처리합니다.
      */
     @PutMapping("/{scheduleDayId}/confirm")
-    public ResponseEntity<ApiResponse<Void>> lockSchedule(
+    public ResponseEntity<ApiResponse<ScheduleLockResponse>> lockSchedule(
             @PathVariable Long scheduleDayId,
             @RequestBody ScheduleLockRequest request,
             Principal principal) {
-        scheduleService.lockSchedule(scheduleDayId, request.isLock(), principal.getName());
-        String message = request.isLock() ? "편성이 확정되었습니다." : "편성 확정이 취소되었습니다.";
-        return ResponseEntity.ok(ApiResponse.success(message));
+        ScheduleLockResponse response = scheduleService.lockSchedule(scheduleDayId, request.getIsLock(), principal.getName());
+        String message = response.getIsLocked() ? "편성이 확정되었습니다." : "편성 확정이 취소되었습니다.";
+        return ResponseEntity.ok(ApiResponse.success(message, response));
     }
 
     /**

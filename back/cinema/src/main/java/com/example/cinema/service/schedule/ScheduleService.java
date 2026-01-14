@@ -5,7 +5,7 @@ import com.example.cinema.entity.Content;
 import com.example.cinema.entity.ScheduleDay;
 import com.example.cinema.entity.ScheduleItem;
 import com.example.cinema.entity.User;
-import com.example.cinema.repository.ContentRepository;
+import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.schedule.ScheduleDayRepository;
 import com.example.cinema.repository.schedule.ScheduleItemRepository;
 import com.example.cinema.repository.user.UserRepository;
@@ -103,7 +103,7 @@ public class ScheduleService {
      * 특정 날짜의 모든 편성을 확정(Lock) 처리합니다.
      */
     @Transactional
-    public void lockSchedule(Long scheduleDayId, boolean isLock, String email) {
+    public ScheduleLockResponse lockSchedule(Long scheduleDayId, boolean isLock, String email) {
         ScheduleDay scheduleDay = getScheduleDayEntity(scheduleDayId);
         User requester = getUser(email);
 
@@ -114,6 +114,7 @@ public class ScheduleService {
         }
 
         scheduleDay.updateLock(isLock, isLock ? LocalDateTime.now() : null);
+        return ScheduleLockResponse.from(scheduleDay);
     }
 
     // --- Private Helper Methods ---

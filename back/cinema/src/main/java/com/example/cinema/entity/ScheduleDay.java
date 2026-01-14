@@ -13,7 +13,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-@Table(name = "schedule_days")
+@Table(name = "schedule_days", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_schedule_day_content_date", columnNames = {"content_id", "schedule_date"})
+})
 public class ScheduleDay extends BaseEntity {
 
     @Id

@@ -1,13 +1,11 @@
 spring:
   application:
     name: cinema
-  profiles:
-    active: dev
-
   datasource:
-    url: jdbc:mysql://localhost:3306/cinema-db
+    url: jdbc:mysql://localhost:3306/cinema_db
     username: root
     password: root1234
+
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -22,10 +20,5 @@ logging:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
 
-toss:
-  client-key: ""
-  secret-key: ""
-  url: "https://api.tosspayments.com/v1"
-
 jwt:
-  secret: ${JWT_SECRET}
+  secret: NaPQN6+wV0m4wT0lCBl01q3RF14403xKukXJfv60ME0XVWwDlx6WyAFZ/J72H3vSZc0ahYT/T9uMai9oDNgpgA==
