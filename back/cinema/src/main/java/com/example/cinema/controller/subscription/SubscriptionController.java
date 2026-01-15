@@ -1,7 +1,7 @@
 package com.example.cinema.controller.subscription;
 
 
-import com.example.cinema.config.auth.CustomUserDetails;
+import com.example.cinema.config.common.CustomUserDetails;
 import com.example.cinema.dto.common.ApiResponse;
 import com.example.cinema.dto.common.PageResponse;
 import com.example.cinema.dto.subscription.*;

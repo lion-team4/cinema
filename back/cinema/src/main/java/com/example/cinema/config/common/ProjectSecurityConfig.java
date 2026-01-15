@@ -59,6 +59,14 @@ public class ProjectSecurityConfig {
                                 "/media-assets/**"
                         ).permitAll()
 
+                        // 테스트 페이지
+                        .requestMatchers(
+                                "/subscription-test",
+                                "/subscription-test.html",
+                                "/test/**",
+                                "/api/test/**"
+                        ).permitAll()
+
                         /* ==================================================
                          * PROTECTED (인증 필요)
                          * ================================================== */
