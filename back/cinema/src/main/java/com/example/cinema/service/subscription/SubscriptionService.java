@@ -190,6 +190,9 @@ public class SubscriptionService {
         subscription.cancel();
         subscriptionRepository.save(subscription);
 
+        // [추가] 판매자 권한 제거
+        user.demoteFromSeller();
+
         // 빌링키도 해지(REVOKED) 처리
         if (subscription.getBillingKey() != null) {
             billingKeyRepository.save(subscription.getBillingKey().revoke());
@@ -231,6 +234,10 @@ public class SubscriptionService {
         if (payment.getStatus() == PaymentStatus.FAILED) {
             throw new IllegalStateException("초기 결제 승인이 거절되었습니다.");
         }
+
+        // [추가] 결제 성공 시 유저를 판매자로 변경
+        User user = subscription.getSubscriber();
+        user.promoteToSeller();
 
         return FirstSubscriptionResponse.from(
                 SubscriptionResponse.from(subscription),
@@ -281,9 +288,15 @@ public class SubscriptionService {
                 // 기간 연장
                 subscription.extensionPeriod();
                 subscription.renew();
+
+                // [추가] 결제 성공 확인 시 다시 한번 보장 (선택 사항)
+                subscription.getSubscriber().promoteToSeller();
             } else {
                 // 결제 실패
                 subscription.cancel();
+
+                // 결제 실패 시 판매자 권한 박탈할 경우
+                // subscription.getSubscriber().demoteFromSeller();
             }
             // Dirty Checking으로 자동 저장됨 (Transaction 종료 시)
 
