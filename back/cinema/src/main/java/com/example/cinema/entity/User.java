@@ -58,4 +58,14 @@ public class User extends BaseEntity {
     public String getCustomerKey(){
         return "CUSTOMER_" + this.userId;
     }
+
+    // 구독한 유저 Seller 로 변경
+    public void promoteToSeller() {
+        this.seller = true;
+    }
+
+    // 필요하다면 구독 해지 시 일반 유저로 변경
+    public void demoteFromSeller() {
+        this.seller = false;
+    }
 }
