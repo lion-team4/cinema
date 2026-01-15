@@ -75,4 +75,3 @@ public class QContent extends EntityPathBase<Content> {
     }
 
 }
-
