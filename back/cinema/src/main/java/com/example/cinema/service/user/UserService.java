@@ -1,6 +1,6 @@
 package com.example.cinema.service.user;
 
-import com.example.cinema.config.auth.JwtTokenProvider;
+import com.example.cinema.config.common.JwtTokenProvider;
 import com.example.cinema.dto.auth.LoginRequest;
 import com.example.cinema.dto.auth.SignupRequest;
 import com.example.cinema.dto.auth.TokenResponse;
@@ -30,6 +30,7 @@ public class UserService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final com.example.cinema.repository.auth.RefreshTokenRepository refreshTokenRepository;
+
 
     public UserGetResponse getProfile(Long userId) {
         User user = userRepository.findById(userId)

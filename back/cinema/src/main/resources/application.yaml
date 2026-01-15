@@ -28,4 +28,4 @@ toss:
   url: "https://api.tosspayments.com/v1"
 
 jwt:
-  secret: VGhpc0lzQVZlcnlMb25nU2VjcmV0S2V5Rm9yVGhlQ2luZW1hQXBwbGljYXRpb25UaGF0SXNEZWZpbml0ZWx5TW9yZVRoYW41MTJCaXRzQW5kU2hvdWxkQmVTZWN1cmVFbm91Z2hGb3JIUzUxMkFsZ29yaXRobUNoZWNr
+  secret: ${JWT_SECRET}

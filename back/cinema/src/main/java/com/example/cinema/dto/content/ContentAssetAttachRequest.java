@@ -1,7 +1,14 @@
 package com.example.cinema.dto.content;
 
-public record ContentAssetAttachRequest (
-        Long posterAssetId,
-        Long videoSourceAssetId,
-        Long videoHlsMasterAssetId
-){}
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class ContentAssetAttachRequest {
+    private Long posterAssetId;
+    private Long videoSourceAssetId;
+    private Long videoHlsMasterAssetId;
+}

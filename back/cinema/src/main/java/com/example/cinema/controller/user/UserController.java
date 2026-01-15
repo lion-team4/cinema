@@ -1,6 +1,6 @@
 package com.example.cinema.controller.user;
 
-import com.example.cinema.config.auth.CustomUserDetails;
+import com.example.cinema.config.common.CustomUserDetails;
 import com.example.cinema.dto.common.ApiResponse;
 import com.example.cinema.dto.user.UserDeleteRequest;
 import com.example.cinema.dto.user.UserGetResponse;

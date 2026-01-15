@@ -1,6 +1,7 @@
 package com.example.cinema.entity;
 
 import com.example.cinema.entity.common.BaseEntity;
+import com.example.cinema.type.ContentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -12,7 +13,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-@Table(name = "schedule_days")
+@Table(name = "schedule_days", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_schedule_day_content_date", columnNames = {"content_id", "schedule_date"})
+})
 public class ScheduleDay extends BaseEntity {
 
     @Id
@@ -33,4 +36,10 @@ public class ScheduleDay extends BaseEntity {
 
     @Column(name = "locked_at")
     private LocalDateTime lockedAt;
+
+    public void updateLock(Boolean isLocked, LocalDateTime lockedAt) {
+        this.isLocked = isLocked;
+        this.lockedAt = lockedAt;
+
+    }
 }
