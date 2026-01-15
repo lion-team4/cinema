@@ -1,0 +1,82 @@
+package com.example.cinema.service.encoding;
+
+import com.example.cinema.infra.ffmpeg.FfmpegDockerRunner;
+import com.example.cinema.infra.s3.S3ObjectService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Comparator;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class HlsTranscodeService {
+
+    private final S3ObjectService s3ObjectService;
+    private final FfmpegDockerRunner ffmpeg;
+
+    @Value("${ffmpeg.work_dir}")
+    private String workDir;
+
+    public int transcodeAndUpload(long contentId,
+                                  String sourceKey,
+                                  String masterKey,
+                                  long minBytesVideo) {
+
+        Path jobDir = Paths.get(workDir).resolve("content-" + contentId);
+        Path input = jobDir.resolve("source.mp4");
+        Path outDir = jobDir.resolve("out");
+
+        try {
+            Files.createDirectories(outDir);
+
+            s3ObjectService.assertReady(sourceKey, minBytesVideo, "video/", 3, new long[]{300, 600, 1200});
+            s3ObjectService.downloadToFile(sourceKey, input);
+
+            ffmpeg.transcodeToHls(jobDir, input, outDir);
+
+            List<Path> tsFiles = Files.list(outDir)
+                    .filter(p -> p.getFileName().toString().endsWith(".ts"))
+                    .sorted(Comparator.comparing(Path::toString))
+                    .toList();
+
+            for (Path ts : tsFiles) {
+                String key = "hls/" + contentId + "/" + ts.getFileName();
+                s3ObjectService.uploadFile(key, ts, "video/mp2t", "public, max-age=31536000, immutable");
+            }
+
+            Path m3u8 = outDir.resolve("index.m3u8");
+            if (!Files.exists(m3u8)) {
+                throw new IllegalStateException("index.m3u8 not found");
+            }
+
+            s3ObjectService.uploadFile(masterKey, m3u8, "application/vnd.apple.mpegurl", "public, max-age=60");
+
+            return tsFiles.size();
+        } catch (Exception e) {
+            throw new IllegalStateException("HLS transcode failed: " + e.getMessage(), e);
+        } finally {
+            safeDelete(jobDir);
+        }
+    }
+
+    private void safeDelete(Path dir) {
+        try {
+            if (!Files.exists(dir)) return;
+            Files.walk(dir)
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException ignored) {
+                        }
+                    });
+        } catch (IOException ignored) {
+        }
+    }
+}
