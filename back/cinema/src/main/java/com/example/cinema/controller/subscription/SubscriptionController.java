@@ -20,15 +20,13 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 
 @RestController
-@RequestMapping("/users")
 @RequiredArgsConstructor
+@RequestMapping("/users/subscriptions")
 @Tag(name = "Subscription", description = "구독 관련 API")
 public class SubscriptionController {
-
     private final SubscriptionService subscriptionService;
 
-
-    @PostMapping("/subscriptions")
+    @PostMapping
     public ResponseEntity<ApiResponse<FirstSubscriptionResponse>> createSubscription(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody SubscriptionCreateRequest request) {
@@ -38,7 +36,7 @@ public class SubscriptionController {
     }
 
 
-    @GetMapping("/subscription")
+    @GetMapping
     public ResponseEntity<ApiResponse<SubscriptionResponse>> getMySubscription(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long userId = userDetails.getUser().getUserId();
@@ -47,7 +45,7 @@ public class SubscriptionController {
     }
 
 
-    @GetMapping("/subscriptions")
+    @GetMapping("/payment-history")
     public ResponseEntity<ApiResponse<PageResponse<PaymentHistoryResponse>>> getPaymentHistory(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
@@ -59,7 +57,7 @@ public class SubscriptionController {
         return ResponseEntity.ok(ApiResponse.success("결제 내역 조회 성공", response));
     }
 
-    @PutMapping("/subscriptions")
+    @PutMapping
     public ResponseEntity<ApiResponse<SubscriptionResponse>> updateBillingKey(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody SubscriptionUpdateBillingRequest request) {
@@ -69,7 +67,7 @@ public class SubscriptionController {
     }
 
 
-    @DeleteMapping("/subscriptions")
+    @DeleteMapping
     public ResponseEntity<ApiResponse<Void>> cancelSubscription(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         Long userId = userDetails.getUser().getUserId();

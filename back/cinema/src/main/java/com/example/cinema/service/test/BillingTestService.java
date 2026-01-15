@@ -25,8 +25,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
-@Slf4j
 @Profile("dev")
+@Slf4j
 public class BillingTestService {
 
     private final UserRepository userRepository;

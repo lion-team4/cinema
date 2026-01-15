@@ -5,6 +5,9 @@ import com.example.cinema.type.ContentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -51,6 +54,10 @@ public class Content extends BaseEntity {
     @Column(name = "month_view")
     @Builder.Default
     private Long monthView = 0L;
+
+    @OneToMany(mappedBy = "content", orphanRemoval = true)
+    @Builder.Default
+    private List<TagMap> tagMaps = new ArrayList<>();
 
     /**
      * 월별 조회수 초기화 (정산 완료 후 다음 달을 위해)
