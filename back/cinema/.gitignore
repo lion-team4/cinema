@@ -39,3 +39,4 @@ out/
 
 # Test profile config
 src/main/resources/application-test.yml
+/.env
