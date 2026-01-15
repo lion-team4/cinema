@@ -74,13 +74,6 @@ public class ProjectSecurityConfig {
                                 "/media-assets/**"
                         ).permitAll()
 
-                        // 테스트 페이지
-                        .requestMatchers(
-                                "/subscription-test",
-                                "/subscription-test.html",
-                                "/test/**",
-                                "/api/test/**"
-                        ).permitAll()
 
                         /* ==================================================
                          * PROTECTED (인증 필요)
@@ -123,8 +116,15 @@ public class ProjectSecurityConfig {
 
                         // 정산
                         .requestMatchers(
+                                "/settlements",
                                 "/settlements/**"
                         ).authenticated()
+                        
+                        // 플랫폼 수입 (인증 불필요 - 누구나 조회 가능)
+                        .requestMatchers(
+                                "/admin/platform-revenue",
+                                "/admin/platform-revenue/**"
+                        ).permitAll()
 
                         // 상영 스케줄 / 상영관
                         .requestMatchers(
