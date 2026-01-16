@@ -86,19 +86,9 @@ public class ContentController {
                 .body(ApiResponse.success("콘텐츠가 삭제되었습니다."));
     }
 
-    // 전체 검색
+    // 콘텐츠 조회(nickname 필드 채우면 유저 한정)
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ContentSearchResponse>>>search(@ModelAttribute ContentSearchRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("콘텐츠 검색 성공", contentService.search(request)));
-    }
-
-    //유저의 게시물 한정
-    @GetMapping("/{nick}")
-    public ResponseEntity<ApiResponse<PageResponse<ContentSearchResponse>>>searchByNickname(
-            @PathVariable String nick,
-            @ModelAttribute ContentSearchRequest request
-    ) {
-        request.setNickname(nick);
         return ResponseEntity.ok(ApiResponse.success("콘텐츠 검색 성공", contentService.search(request)));
     }
 }
