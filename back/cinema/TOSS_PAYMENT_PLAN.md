@@ -29,20 +29,23 @@
 
 ## Phase 3: 비즈니스 로직 구현 (Business Layer)
 **목표**: 구독 생성 시 결제 흐름 제어 및 DB 트랜잭션 처리
-- [ ] **`BillingService` 구현**:
+- [x] **`BillingService` 구현**:
     - 유저별 `customerKey` 생성/조회
     - `TossPaymentClient` 호출하여 빌링키 발급
     - `BillingKey` 엔티티 저장 (User 연관 관계 설정)
-- [ ] **`PaymentService` 구현**:
+- [x] **`PaymentService` 구현**:
     - 최초 구독 시 즉시 결제 처리
     - `Payment` 엔티티 저장 (결제 이력)
-- [ ] **`SubscriptionService` 연동**:
+- [x] **`SubscriptionService` 연동**:
     - 구독 생성 트랜잭션 내에서 `BillingService` -> `PaymentService` 순차 실행
+    - **Note**: 실제 구현에서는 `SubscriptionService`가 `BillingService`와 `PaymentService`의 역할을 통합하여 처리함.
 
 ## Phase 4: 테스트 및 검증 (Verification)
 **목표**: 통합 테스트를 통한 결제 흐름 검증
-- [ ] **단위 테스트**: `TossPaymentClient` Mocking을 통한 서비스 로직 테스트
-- [ ] **통합 테스트**: 실제 토스 테스트 키(`test_sk_...`)를 사용한 E2E 테스트 (선택 사항)
+- [x] **단위 테스트**: `TossPaymentClient` Mocking을 통한 서비스 로직 테스트
+- [x] **통합 테스트**: 실제 토스 테스트 키(`test_sk_...`)를 사용한 E2E 테스트 (완료)
+    - `BillingTestService` 및 `BillingController`를 통해 전체 결제 흐름(발급->결제->해지) 검증 완료.
+    - Postman 테스트 컬렉션 확보.
 
 ---
 

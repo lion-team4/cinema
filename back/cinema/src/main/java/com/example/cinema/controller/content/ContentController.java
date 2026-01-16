@@ -90,4 +90,13 @@ public class ContentController {
     public ResponseEntity<ApiResponse<PageResponse<ContentSearchResponse>>>search(@ModelAttribute ContentSearchRequest request) {
         return ResponseEntity.ok(ApiResponse.success("콘텐츠 검색 성공", contentService.search(request)));
     }
+
+    @GetMapping("/{nick}")
+    public ResponseEntity<ApiResponse<PageResponse<ContentSearchResponse>>>searchByNickname(
+            @PathVariable String nick,
+            @ModelAttribute ContentSearchRequest request
+    ) {
+        request.setNickname(nick);
+        return ResponseEntity.ok(ApiResponse.success("콘텐츠 검색 성공", contentService.search(request)));
+    }
 }

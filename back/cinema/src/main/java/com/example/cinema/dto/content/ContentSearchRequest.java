@@ -14,6 +14,7 @@ import java.util.List;
  * - GET /contents/search
  */
 @Getter
+@Setter
 public class ContentSearchRequest {
     private Integer page = 0;
     private Integer size = 10;
@@ -24,4 +25,5 @@ public class ContentSearchRequest {
     private boolean or = true;
     private SortField sort = SortField.CREATED;
     private boolean asc = false;
+    private String nickname;
 }

@@ -77,6 +77,9 @@ public class ContentExpression {
 
         BooleanBuilder builder = new BooleanBuilder();
 
+        if (request.getNickname() != null && !request.getNickname().isBlank()) {
+            builder.and(content.owner.nickname.eq(request.getNickname()));
+        }
 
         if (!(keyword == null || keyword.isBlank())){
             BooleanExpression keywordExpression = request.isTitle() ?
@@ -84,6 +87,7 @@ public class ContentExpression {
                     whitespaceIgnoreCase(content.owner.nickname, keyword);
             builder.and(keywordExpression);
         }
+
 
         if (request.isFilter()){
             BooleanExpression tagListExpression = request.isOr() ?
