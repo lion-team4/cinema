@@ -10,15 +10,15 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor
 public class ScheduleCreateRequest {
-    @NotNull
+    @NotNull(message = "콘텐츠를 선택해주세요.")
     private Long contentId; //영화
 
-    @NotNull
+    @NotNull(message = "편성 날짜를 선택해주세요.")
     private LocalDate scheduleDate; //편성날짜
 
-    @NotNull
+    @NotNull(message = "시작 시간을 입력해주세요.")
     private LocalDateTime startAt; //시작 시간
 
-    @NotNull
+    @NotNull(message = "종료 시간을 입력해주세요.")
     private LocalDateTime endAt; //종료시간
 }

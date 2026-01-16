@@ -5,17 +5,12 @@ import com.example.cinema.dto.common.PageResponse;
 import com.example.cinema.dto.content.*;
 import com.example.cinema.service.content.ContentService;
 import jakarta.validation.Valid;
-import com.example.cinema.dto.content.ContentSearchRequest;
-import com.example.cinema.dto.content.ContentSearchResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.security.Principal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/contents")

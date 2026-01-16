@@ -5,6 +5,8 @@ import com.example.cinema.entity.Content;
 import com.example.cinema.entity.ScheduleDay;
 import com.example.cinema.entity.ScheduleItem;
 import com.example.cinema.entity.User;
+import com.example.cinema.exception.BusinessException;
+import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.schedule.ScheduleDayRepository;
 import com.example.cinema.repository.schedule.ScheduleItemRepository;
@@ -12,7 +14,6 @@ import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.type.ContentStatus;
 import com.example.cinema.type.ScheduleStatus;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,7 +40,7 @@ public class ScheduleService {
      */
     public ScheduleDayResponse getScheduleDay(Long contentId, LocalDate date) {
         ScheduleDay scheduleDay = scheduleDayRepository.findByContent_ContentIdAndScheduleDate(contentId, date)
-                .orElseThrow(() -> new IllegalArgumentException("No schedule found for this date."));
+                .orElseThrow(() -> new BusinessException("해당 날짜의 상영 일정을 찾을 수 없습니다.", ErrorCode.SCHEDULE_NOT_FOUND));
 
         List<ScheduleItemResponse> items = scheduleItemRepository.findAllByScheduleDay_ScheduleDayId(scheduleDay.getScheduleDayId())
                 .stream()
@@ -110,7 +111,7 @@ public class ScheduleService {
         validateOwner(requester.getUserId(), scheduleDay.getContent().getOwner().getUserId());
 
         if (scheduleDay.getIsLocked()) {
-            throw new IllegalStateException("This schedule is already confirmed and cannot be modified.");
+            throw new BusinessException("이미 확정된 스케줄이므로 수정할 수 없습니다.", ErrorCode.INVALID_INPUT_VALUE);
         }
 
         scheduleDay.updateLock(isLock, isLock ? LocalDateTime.now() : null);
@@ -131,22 +132,22 @@ public class ScheduleService {
 
     private User getUser(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("User not found with email: " + email));
+                .orElseThrow(() -> new BusinessException("사용자를 찾을 수 없습니다. 이메일: " + email, ErrorCode.USER_NOT_FOUND));
     }
 
     private Content getContent(Long contentId) {
         return contentRepository.findById(contentId)
-                .orElseThrow(() -> new IllegalArgumentException("Content not found with id: " + contentId));
+                .orElseThrow(() -> new BusinessException("콘텐츠를 찾을 수 없습니다. ID: " + contentId, ErrorCode.CONTENT_NOT_FOUND));
     }
 
     private ScheduleItem getScheduleItem(Long scheduleItemId) {
         return scheduleItemRepository.findById(scheduleItemId)
-                .orElseThrow(() -> new IllegalArgumentException("Schedule Item not found with id: " + scheduleItemId));
+                .orElseThrow(() -> new BusinessException("상영 일정을 찾을 수 없습니다. ID: " + scheduleItemId, ErrorCode.SCHEDULE_NOT_FOUND));
     }
 
     private ScheduleDay getScheduleDayEntity(Long scheduleDayId) {
         return scheduleDayRepository.findById(scheduleDayId)
-                .orElseThrow(() -> new IllegalArgumentException("Schedule Day not found with id: " + scheduleDayId));
+                .orElseThrow(() -> new BusinessException("스케줄 일자를 찾을 수 없습니다. ID: " + scheduleDayId, ErrorCode.SCHEDULE_NOT_FOUND));
     }
 
     private ScheduleDay getOrCreateScheduleDay(Content content, LocalDate date) {
@@ -160,31 +161,31 @@ public class ScheduleService {
 
     private void validateOwner(Long requesterId, Long ownerId) {
         if (!requesterId.equals(ownerId)) {
-            throw new AccessDeniedException("Access denied: You are not the owner of this content.");
+            throw new BusinessException("접근 권한이 없습니다. 본인의 콘텐츠만 관리할 수 있습니다.", ErrorCode.ACCESS_DENIED);
         }
     }
 
     private void validateContentStatus(Content content) {
         if (content.getStatus() != ContentStatus.PUBLISHED) {
-            throw new IllegalStateException("Only PUBLISHED content can be scheduled.");
+            throw new BusinessException("상영 승인(PUBLISHED)된 콘텐츠만 스케줄을 등록할 수 있습니다.", ErrorCode.INVALID_INPUT_VALUE);
         }
     }
 
     private void validateTimeRange(LocalDateTime start, LocalDateTime end) {
         if (start.isAfter(end)) {
-            throw new IllegalArgumentException("Start time must be before end time.");
+            throw new BusinessException("시작 시간은 종료 시간보다 앞서야 합니다.", ErrorCode.INVALID_INPUT_VALUE);
         }
     }
 
     private void validateScheduleUnlocked(ScheduleDay scheduleDay) {
         if (scheduleDay.getIsLocked()) {
-            throw new IllegalStateException("Schedule Day is locked. Cannot modify schedule.");
+            throw new BusinessException("스케줄이 확정(Lock)되어 수정할 수 없습니다.", ErrorCode.INVALID_INPUT_VALUE);
         }
     }
 
     private void validateCreatorOverlap(Long ownerId, LocalDateTime start, LocalDateTime end, Long excludeId) {
         if (scheduleItemRepository.existsOverlapByOwner(ownerId, start, end, excludeId)) {
-            throw new IllegalStateException("The creator already has a schedule during this time.");
+            throw new BusinessException("해당 시간에 이미 등록된 스케줄이 존재합니다.", ErrorCode.SCHEDULE_CONFLICT);
         }
     }
 }
