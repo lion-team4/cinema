@@ -1,6 +1,7 @@
 package com.example.cinema.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
+import com.example.cinema.repository.content.custom.*;
 
 import com.querydsl.core.types.dsl.*;
 
@@ -39,6 +40,8 @@ public class QContent extends EntityPathBase<Content> {
 
     public final EnumPath<com.example.cinema.type.ContentStatus> status = createEnum("status", com.example.cinema.type.ContentStatus.class);
 
+    public final ListPath<TagMap, QTagMap> tagMaps = this.<TagMap, QTagMap>createList("tagMaps", TagMap.class, QTagMap.class, PathInits.DIRECT2);
+
     public final StringPath title = createString("title");
 
     public final NumberPath<Long> totalView = createNumber("totalView", Long.class);
@@ -72,6 +75,14 @@ public class QContent extends EntityPathBase<Content> {
         this.poster = inits.isInitialized("poster") ? new QMediaAsset(forProperty("poster"), inits.get("poster")) : null;
         this.videoHlsMaster = inits.isInitialized("videoHlsMaster") ? new QMediaAsset(forProperty("videoHlsMaster"), inits.get("videoHlsMaster")) : null;
         this.videoSource = inits.isInitialized("videoSource") ? new QMediaAsset(forProperty("videoSource"), inits.get("videoSource")) : null;
+    }
+
+    public com.querydsl.core.types.Predicate search(com.example.cinema.dto.content.ContentSearchRequest request) {
+        return ContentExpression.search(this, request);
+    }
+
+    public com.querydsl.core.types.OrderSpecifier<?> sort(com.example.cinema.dto.content.ContentSearchRequest request) {
+        return ContentExpression.sort(this, request);
     }
 
 }
