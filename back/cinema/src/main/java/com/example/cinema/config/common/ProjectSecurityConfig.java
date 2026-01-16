@@ -120,17 +120,15 @@ public class ProjectSecurityConfig {
                                 "/users/subscriptions/**"
                         ).authenticated()
 
-                        // 정산
+
                         .requestMatchers(
-                                "/settlements",
-                                "/settlements/**"
-                        ).authenticated()
-                        
-                        // 플랫폼 수입 (인증 불필요 - 누구나 조회 가능)
-                        .requestMatchers(
-                                "/admin/platform-revenue",
                                 "/admin/platform-revenue/**"
                         ).permitAll()
+
+                        // 정산
+                        .requestMatchers(
+                                "/settlements/**"
+                        ).authenticated()
 
                         // 상영 스케줄 / 상영관
                         .requestMatchers(
