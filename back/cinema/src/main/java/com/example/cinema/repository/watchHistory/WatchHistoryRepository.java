@@ -15,6 +15,8 @@ import java.util.Optional;
 @Repository
 public interface WatchHistoryRepository extends JpaRepository<WatchHistory, Long> {
 
+    Optional<WatchHistory> findByUserAndScheduleItem(User user,ScheduleItem scheduleItem);
+
     /**
      * 특정 사용자의 특정 스케줄 시청 기록 조회 (퇴장 안 한 기록)
      */
@@ -35,19 +37,4 @@ public interface WatchHistoryRepository extends JpaRepository<WatchHistory, Long
      */
     long countByScheduleItemAndLeftAtIsNull(ScheduleItem scheduleItem);
 
-    /**
-     * 조회수 카운트 대상 조회
-     * - 현재 입장 중 (leftAt IS NULL)
-     * - 아직 카운트 안 됨 (viewCounted = false)
-     * - 1시간 이상 시청 (createdAt <= threshold)
-     */
-    @Query("""
-        SELECT wh FROM WatchHistory wh
-        JOIN FETCH wh.scheduleItem si
-        JOIN FETCH si.content c
-        WHERE wh.leftAt IS NULL
-          AND wh.viewCounted = false
-          AND wh.createdAt <= :threshold
-        """)
-    List<WatchHistory> findEligibleForViewCount(@Param("threshold") LocalDateTime threshold);
 }

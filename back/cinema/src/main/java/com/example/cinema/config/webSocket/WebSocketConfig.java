@@ -11,12 +11,21 @@ import org.springframework.web.socket.config.annotation.*;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompAuthChannelInterceptor stompAuthChannelInterceptor;
+    private final StompErrorHandler stompErrorHandler;
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // 순수 WebSocket (프론트엔드 SockJS 미사용 시)
         registry.addEndpoint("/ws")
-                // TODO: 배포 시 Next 도메인으로 제한 수정 필요
                 .setAllowedOriginPatterns("*");
+        
+        // SockJS fallback (Postman, 브라우저 호환성)
+        registry.addEndpoint("/ws-sockjs")
+                .setAllowedOriginPatterns("*")
+                .withSockJS();
+        
+        // 에러 핸들러 등록
+        registry.setErrorHandler(stompErrorHandler);
     }
 
     @Override

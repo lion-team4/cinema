@@ -556,3 +556,94 @@ public Executor encodingExecutor() {
 | 5명 시청 시 서버 | **1대로 충분** (영상은 CDN, 동기화만 서버) |
 | 스레드 모델 | **NIO/이벤트 기반** (연결당 스레드 ❌) |
 | 확장 방법 | SimpleBroker → **Redis Pub/Sub** → Kafka |
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    [1단계] 콘텐츠 업로드 (Seller)                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+    POST /api/assets/presign ───────┼───────▶ S3 Presigned URL
+    PUT (직접 업로드) ──────────────┼───────▶ S3에 source.mp4 저장
+    POST /api/assets/complete ──────┼───────▶ EncodingJobService.start()
+                                    │              │
+                                    │              ▼
+                                    │         HlsTranscodeService
+                                    │              │
+                                    │              ▼
+                                    │         S3에 HLS 세그먼트 업로드
+                                    │         (hls/{contentId}/index.m3u8)
+                                    │              │
+                                    │              ▼
+                                    │         Content.videoHlsMaster 연결
+                                    │
+    POST /schedules ────────────────┼───────▶ ScheduleItem 생성
+                                    │         (Content와 연결됨)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    [2단계] 상영관 입장 (Viewer)                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+    POST /theaters/{id}/enter ──────┼───────▶ WatchHistory 생성
+                                    │         (구독/스케줄 상태 검증)
+                                    │
+    GET /theaters/{id}/playback ────┼───────▶ ScheduleItem → Content → MediaAsset
+                                    │         → CloudFront URL 반환
+                                    │
+    WebSocket SUBSCRIBE ────────────┼───────▶ PlaybackStateResponse 수신
+                                    │         (스케줄 시작 시간 기준 positionMs)
+                                    │
+                              [영상 재생 + 동기화]
+
+                              1. Seller가 Content 생성 (제목, 설명 등)
+2. Seller가 영상 업로드 → complete() 호출
+3. ★ 자동으로 HLS 인코딩 시작 (비동기)
+4. 인코딩 완료 → S3에 HLS 파일들 저장됨
+   └── hls/123/index.m3u8
+   └── hls/123/segment_0.ts
+   └── hls/123/segment_1.ts
+   └── ...
+
+[Phase 2: 스케줄 등록]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. Seller가 ScheduleDay 생성 (날짜 지정)
+6. Seller가 ScheduleItem 생성 (startAt, endAt 지정)
+   └── status = CLOSED (초기값)
+
+[Phase 3: 상영 시간 도래] (스케줄러가 자동 처리)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. startAt - 10분 → 스케줄러가 CLOSED → WAITING 전환
+8. startAt 도달 → 스케줄러가 WAITING → PLAYING 전환
+9. User가 /theaters/{scheduleId}/enter 호출
+10. User가 /theaters/{scheduleId}/playback 호출
+    → videoHlsMaster의 CloudFront URL 반환
+11. 프론트에서 HLS.js로 재생
+12. endAt 도달 → PLAYING → ENDING → CLOSED
+
+상태전이 타임라인
+시간축 ─────────────────────────────────────────────────────────────►
+
+     CLOSED        WAITING         PLAYING           ENDING      CLOSED
+        │             │               │                 │           │
+        │   -10분     │   startAt     │     endAt       │   +10분   │
+        ├─────────────┼───────────────┼─────────────────┼───────────┤
+        │             │               │                 │           │
+입장가능              입장가능         입장가능           입장불가    입장불가
+영상없음              카운트다운       영상재생          유예화면    Kick
+
+
+✅ 흐름 검증
+🎬 상영관 입장 + 영상 싱크 흐름
+단계	설명	상태
+1. 상영관 입장	POST /theaters/{id}/enter → TheaterEnterResponse 반환	✅ 맞음
+2. STOMP 연결	/ws 엔드포인트로 CONNECT (JWT 포함)	✅ 맞음
+3. 상태 구독	/topic/theaters/{id}/state 구독	✅ 맞음
+4. 초기 싱크	@SubscribeMapping으로 즉시 PlaybackStateResponse 수신	✅ 맞음
+5. 영상 싱크	positionMs로 비디오 플레이어 seek	✅ 맞음
+6. 상태 변경	스케줄러가 DB 업데이트 → 서비스 호출 → 브로드캐스트	✅ 맞음
+7. 클라 수신	상태 변경 시 모달/kick 처리 가능	✅ 맞음
+💬 채팅 흐름
+단계	설명	상태
+1. 메시지 전송	/app/chat/{id}로 SEND	✅ 맞음
+2. prefix 제거	/app 제거 → /chat/{id}로 라우팅	✅ 맞음
+3. 컨트롤러	@MessageMapping("/chat/{scheduleId}") 호출	✅ 맞음
+4. 브로드캐스트	@SendTo("/topic/theaters/{id}/chat")로 전체 전송	✅ 맞음

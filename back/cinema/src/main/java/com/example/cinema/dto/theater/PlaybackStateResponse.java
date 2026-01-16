@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 /**
@@ -43,8 +44,9 @@ public class PlaybackStateResponse {
         boolean isPlaying = status == ScheduleStatus.PLAYING;
 
         long positionMs = 0L;
+        ZoneId zoneId = ZoneId.of("Asia/Seoul");
         if (isPlaying) {
-            long startAtMs = item.getStartAt().toInstant(ZoneOffset.UTC).toEpochMilli();
+            long startAtMs = item.getStartAt().atZone(zoneId).toInstant().toEpochMilli();
             positionMs = Math.max(0L, serverTimeMs - startAtMs);
         }
 
