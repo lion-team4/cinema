@@ -1,5 +1,6 @@
 package com.example.cinema.controller.content;
 
+import com.example.cinema.config.common.CustomUserDetails;
 import com.example.cinema.dto.common.ApiResponse;
 import com.example.cinema.dto.common.PageResponse;
 import com.example.cinema.dto.content.*;
@@ -8,9 +9,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
 
 @RestController
 @RequestMapping("/contents")
@@ -23,10 +23,9 @@ public class ContentController {
     @PostMapping
     public ResponseEntity<ApiResponse<ContentResponse>> createContent(
             @Valid @RequestBody ContentRequest contentRequest,
-            Principal principal
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        String email = principal.getName();
-        ContentResponse contentResponse = contentService.createContent(contentRequest, email);
+        ContentResponse contentResponse = contentService.createContent(contentRequest, userDetails.getUser());
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("콘텐츠가 생성되었습니다.", contentResponse));
@@ -36,11 +35,10 @@ public class ContentController {
     @PatchMapping("/{contentId}")
     public ResponseEntity<ApiResponse<ContentResponse>> patchContent(
             @Valid @RequestBody ContentAssetAttachRequest assetAttachRequest,
-            Principal principal,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long contentId
     ) {
-        String email = principal.getName();
-        ContentResponse contentResponse = contentService.addAssetsContent(assetAttachRequest, email, contentId);
+        ContentResponse contentResponse = contentService.addAssetsContent(assetAttachRequest, userDetails.getUser(), contentId);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.success("콘텐츠 에셋이 추가되었습니다.", contentResponse));
@@ -50,10 +48,9 @@ public class ContentController {
     @GetMapping("/{contentId}/edit")
     public ResponseEntity<ApiResponse<ContentEditResponse>> getEditForm(
             @PathVariable Long contentId,
-            Principal principal
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        String email = principal.getName();
-        ContentEditResponse editResponse = contentService.getEditContent(email, contentId);
+        ContentEditResponse editResponse = contentService.getEditContent(userDetails.getUser(), contentId);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.success("콘텐츠 수정 정보를 조회했습니다.", editResponse));
@@ -64,10 +61,9 @@ public class ContentController {
     public ResponseEntity<ApiResponse<ContentEditResponse>> update(
             @PathVariable Long contentId,
             @Valid @RequestBody ContentUpdateRequest updateRequest,
-            Principal principal
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        String email = principal.getName();
-        ContentEditResponse editResponse = contentService.updateContent(email, contentId, updateRequest);
+        ContentEditResponse editResponse = contentService.updateContent(userDetails.getUser(), contentId, updateRequest);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.success("콘텐츠가 수정되었습니다.", editResponse));
@@ -77,10 +73,9 @@ public class ContentController {
     @DeleteMapping("/{contentId}")
     public ResponseEntity<ApiResponse<Void>> deleteContent(
             @PathVariable Long contentId,
-            Principal principal
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        String email = principal.getName();
-        contentService.deleteContent(email, contentId);
+        contentService.deleteContent(userDetails.getUser(), contentId);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.success("콘텐츠가 삭제되었습니다."));
@@ -90,10 +85,9 @@ public class ContentController {
     @GetMapping("/{contentId}/encoding-status")
     public ResponseEntity<ApiResponse<ContentEncodingStatusResponse>> getEncodingStatus(
             @PathVariable Long contentId,
-            Principal principal
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        String email = principal.getName();
-        ContentEncodingStatusResponse response = contentService.getEncodingStatus(email, contentId);
+        ContentEncodingStatusResponse response = contentService.getEncodingStatus(userDetails.getUser(), contentId);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.success("인코딩 상태를 조회했습니다.", response));
     }

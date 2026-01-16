@@ -1,14 +1,14 @@
 package com.example.cinema.controller.theater;
 
+import com.example.cinema.config.common.CustomUserDetails;
 import com.example.cinema.dto.common.ApiResponse;
 import com.example.cinema.dto.theater.TheaterEnterResponse;
 import com.example.cinema.dto.theater.TheaterLeaveResponse;
 import com.example.cinema.service.theater.TheaterEnterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
 
 @RestController
 @RequiredArgsConstructor
@@ -25,9 +25,9 @@ public class TheaterEnterController {
     @PostMapping("/{scheduleId}/enter")
     public ResponseEntity<ApiResponse<TheaterEnterResponse>> enter(
             @PathVariable long scheduleId,
-            Principal principal) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        TheaterEnterResponse response = enterService.enter(scheduleId, principal.getName());
+        TheaterEnterResponse response = enterService.enter(scheduleId, userDetails.getUser());
         return ResponseEntity.ok(ApiResponse.success("상영관 입장 성공", response));
     }
 
@@ -37,9 +37,9 @@ public class TheaterEnterController {
     @PostMapping("/{scheduleId}/leave")
     public ResponseEntity<ApiResponse<TheaterLeaveResponse>> leave(
             @PathVariable long scheduleId,
-            Principal principal) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        TheaterLeaveResponse response = enterService.leave(scheduleId, principal.getName());
+        TheaterLeaveResponse response = enterService.leave(scheduleId, userDetails.getUser());
         return ResponseEntity.ok(ApiResponse.success("상영관 퇴장 성공", response));
     }
 

@@ -5,9 +5,7 @@ import com.example.cinema.dto.theater.TheaterLeaveResponse;
 import com.example.cinema.entity.ScheduleItem;
 import com.example.cinema.entity.User;
 import com.example.cinema.entity.WatchHistory;
-import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.schedule.ScheduleItemRepository;
-import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.repository.watchHistory.WatchHistoryRepository;
 import com.example.cinema.type.ScheduleStatus;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +20,6 @@ public class TheaterEnterService {
 
     private final WatchHistoryRepository watchHistoryRepository;
     private final ScheduleItemRepository scheduleItemRepository;
-    private final UserRepository userRepository;
 
     /**
      * 상영관 입장
@@ -31,8 +28,7 @@ public class TheaterEnterService {
      * - 중복 입장 방지
      */
     @Transactional
-    public TheaterEnterResponse enter(long scheduleId, String email) {
-        User user = getUser(email);
+    public TheaterEnterResponse enter(long scheduleId, User user) {
         ScheduleItem scheduleItem = getScheduleItem(scheduleId);
 
         // 구독 상태 검증
@@ -62,8 +58,7 @@ public class TheaterEnterService {
      * 상영관 퇴장
      */
     @Transactional
-    public TheaterLeaveResponse leave(long scheduleId, String email) {
-        User user = getUser(email);
+    public TheaterLeaveResponse leave(long scheduleId, User user) {
         ScheduleItem scheduleItem = getScheduleItem(scheduleId);
 
         // 입장 기록 조회 (퇴장하지 않은 기록)
@@ -87,11 +82,6 @@ public class TheaterEnterService {
     public long getViewerCount(long scheduleId) {
         ScheduleItem scheduleItem = getScheduleItem(scheduleId);
         return watchHistoryRepository.countByScheduleItemAndLeftAtIsNull(scheduleItem);
-    }
-
-    private User getUser(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
     }
 
     private ScheduleItem getScheduleItem(long scheduleId) {

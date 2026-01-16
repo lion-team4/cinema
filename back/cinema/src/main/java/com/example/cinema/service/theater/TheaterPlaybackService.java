@@ -6,7 +6,6 @@ import com.example.cinema.entity.MediaAsset;
 import com.example.cinema.entity.ScheduleItem;
 import com.example.cinema.entity.User;
 import com.example.cinema.repository.schedule.ScheduleItemRepository;
-import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.service.media.CloudFrontUrlService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -18,12 +17,8 @@ public class TheaterPlaybackService {
 
     private final ScheduleItemRepository scheduleItemRepository;
     private final CloudFrontUrlService cloudFrontUrlService;
-    private final UserRepository userRepository;
 
-    public PlaybackInfoResponse getPlaybackInfo(long scheduleId, String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
+    public PlaybackInfoResponse getPlaybackInfo(long scheduleId, User user) {
         // 구독 상태 검증
         if (user.getSubscription() == null || !user.getSubscription().getIsActive()) {
             throw new AccessDeniedException("구독이 필요한 서비스입니다.");

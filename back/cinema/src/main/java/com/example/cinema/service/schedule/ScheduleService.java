@@ -12,7 +12,6 @@ import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.schedule.ScheduleDayRepository;
 import com.example.cinema.repository.schedule.ScheduleItemRepository;
 import com.example.cinema.repository.schedule.custom.ScheduleItemRepositoryCustom;
-import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.type.ContentStatus;
 import com.example.cinema.type.ScheduleStatus;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +35,6 @@ public class ScheduleService {
     private final ScheduleDayRepository scheduleDayRepository;
     private final ScheduleItemRepository scheduleItemRepository;
     private final ContentRepository contentRepository;
-    private final UserRepository userRepository;
     private final ScheduleItemRepositoryCustom scheduleItemRepositoryCustom;
 
     /**
@@ -66,9 +64,8 @@ public class ScheduleService {
      * 새로운 상영 일정(슬롯)을 생성합니다.
      */
     @Transactional
-    public ScheduleCreateResponse createSchedule(ScheduleCreateRequest request, String email) {
+    public ScheduleCreateResponse createSchedule(ScheduleCreateRequest request, User requester) {
         Content content = getContent(request.getContentId());
-        User requester = getUser(email);
 
         validateOwner(requester.getUserId(), content.getOwner().getUserId());
         validateContentStatus(content);
@@ -93,8 +90,8 @@ public class ScheduleService {
      * 기존 상영 일정의 상영 시간을 수정합니다.
      */
     @Transactional
-    public ScheduleItemResponse editSchedule(Long scheduleItemId, ScheduleEditRequest request, String email) {
-        ScheduleItem item = validateModifyAccess(scheduleItemId, email);
+    public ScheduleItemResponse editSchedule(Long scheduleItemId, ScheduleEditRequest request, User requester) {
+        ScheduleItem item = validateModifyAccess(scheduleItemId, requester);
 
         validateTimeRange(request.getStartAt(), request.getEndAt());
         validateCreatorOverlap(item.getContent().getOwner().getUserId(), request.getStartAt(), request.getEndAt(), item.getScheduleItemId());
@@ -107,8 +104,8 @@ public class ScheduleService {
      * 상영 일정을 삭제합니다.
      */
     @Transactional
-    public void deleteSchedule(Long scheduleItemId, String email) {
-        ScheduleItem item = validateModifyAccess(scheduleItemId, email);
+    public void deleteSchedule(Long scheduleItemId, User requester) {
+        ScheduleItem item = validateModifyAccess(scheduleItemId, requester);
         scheduleItemRepository.delete(item);
     }
 
@@ -116,9 +113,8 @@ public class ScheduleService {
      * 특정 날짜의 모든 편성을 확정(Lock) 처리합니다.
      */
     @Transactional
-    public ScheduleLockResponse lockSchedule(Long scheduleDayId, boolean isLock, String email) {
+    public ScheduleLockResponse lockSchedule(Long scheduleDayId, boolean isLock, User requester) {
         ScheduleDay scheduleDay = getScheduleDayEntity(scheduleDayId);
-        User requester = getUser(email);
 
         validateOwner(requester.getUserId(), scheduleDay.getContent().getOwner().getUserId());
 
@@ -132,19 +128,13 @@ public class ScheduleService {
 
     // --- Private Helper Methods ---
 
-    private ScheduleItem validateModifyAccess(Long scheduleItemId, String email) {
+    private ScheduleItem validateModifyAccess(Long scheduleItemId, User requester) {
         ScheduleItem item = getScheduleItem(scheduleItemId);
-        User requester = getUser(email);
 
         validateOwner(requester.getUserId(), item.getContent().getOwner().getUserId());
         validateScheduleUnlocked(item.getScheduleDay());
 
         return item;
-    }
-
-    private User getUser(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("사용자를 찾을 수 없습니다. 이메일: " + email, ErrorCode.USER_NOT_FOUND));
     }
 
     private Content getContent(Long contentId) {
