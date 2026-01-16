@@ -17,6 +17,12 @@ spring:
       hibernate:
         format_sql: true
 
+  batch:
+    job:
+      enabled: false  # Scheduler로 실행하므로 자동 실행 비활성화
+    jdbc:
+      initialize-schema: always  # Batch 메타데이터 테이블 자동 생성
+
 logging:
   level:
     org.hibernate.SQL: debug

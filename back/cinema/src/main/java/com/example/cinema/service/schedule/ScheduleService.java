@@ -11,6 +11,7 @@ import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.schedule.ScheduleDayRepository;
 import com.example.cinema.repository.schedule.ScheduleItemRepository;
+import com.example.cinema.repository.schedule.custom.ScheduleItemRepositoryCustom;
 import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.type.ContentStatus;
 import com.example.cinema.type.ScheduleStatus;
@@ -36,12 +37,13 @@ public class ScheduleService {
     private final ScheduleItemRepository scheduleItemRepository;
     private final ContentRepository contentRepository;
     private final UserRepository userRepository;
+    private final ScheduleItemRepositoryCustom scheduleItemRepositoryCustom;
 
     /**
      * 상영 일정을 검색합니다.
      */
     public PageResponse<ScheduleSearchResponse> searchSchedules(ScheduleSearchRequest request) {
-        Page<ScheduleItem> page = scheduleItemRepository.search(request);
+        Page<ScheduleItem> page = scheduleItemRepositoryCustom.search(request);
         return PageResponse.from(page.map(ScheduleSearchResponse::from));
     }
 
