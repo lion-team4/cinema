@@ -7,6 +7,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class ContentResponse {
+    private Long content_id;
     private String title;
     private String description;
     private String status;
@@ -17,6 +18,7 @@ public class ContentResponse {
 
     public static ContentResponse from(Content c) {
         return ContentResponse.builder()
+                .content_id(c.getContentId())
                 .title(c.getTitle())
                 .description(c.getDescription())
                 .status(c.getStatus().name())

@@ -2,6 +2,7 @@ package com.example.cinema.repository.schedule;
 
 import com.example.cinema.entity.ScheduleItem;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -32,4 +33,46 @@ public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, Long
                                  @Param("excludeId") Long excludeId);
 
     java.util.List<ScheduleItem> findAllByScheduleDay_ScheduleDayId(Long scheduleDayId);
-}
+
+        @Modifying(clearAutomatically = true, flushAutomatically = true)
+        @Query("""
+        update ScheduleItem s
+           set s.status = com.example.cinema.type.ScheduleStatus.CLOSED
+         where s.status = com.example.cinema.type.ScheduleStatus.ENDING
+           and s.endAt <= :nowMinus10
+    """)
+        int endingToClosed(@Param("nowMinus10") LocalDateTime nowMinus10);
+
+        @Modifying(clearAutomatically = true, flushAutomatically = true)
+        @Query("""
+        update ScheduleItem s
+           set s.status = com.example.cinema.type.ScheduleStatus.ENDING
+         where s.status = com.example.cinema.type.ScheduleStatus.PLAYING
+           and s.endAt <= :now
+    """)
+        int playingToEnding(@Param("now") LocalDateTime now);
+
+        @Modifying(clearAutomatically = true, flushAutomatically = true)
+        @Query("""
+        update ScheduleItem s
+           set s.status = com.example.cinema.type.ScheduleStatus.PLAYING
+         where s.status = com.example.cinema.type.ScheduleStatus.WAITING
+           and s.startAt <= :now
+    """)
+        int waitingToPlaying(@Param("now") LocalDateTime now);
+
+        // 오픈: CLOSED -> WAITING (startAt-10분 구간)
+        // 조건: startAt > now && startAt <= now+10분
+        @Modifying(clearAutomatically = true, flushAutomatically = true)
+        @Query("""
+        update ScheduleItem s
+           set s.status = com.example.cinema.type.ScheduleStatus.WAITING
+         where s.status = com.example.cinema.type.ScheduleStatus.CLOSED
+           and s.startAt > :now
+           and s.startAt <= :nowPlus10
+    """)
+        int closedToWaiting(@Param("now") LocalDateTime now,
+                            @Param("nowPlus10") LocalDateTime nowPlus10);
+    }
+
+
