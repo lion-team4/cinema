@@ -109,6 +109,14 @@ public class ContentService {
         return ContentEditResponse.from(content);
     }
 
+    @Transactional(readOnly = true)
+    public ContentEncodingStatusResponse getEncodingStatus(String email, Long contentId) {
+        User user = getUser(email);
+        Content content = getContent(contentId);
+        validateOwner(user, content);
+        return ContentEncodingStatusResponse.from(content);
+    }
+
 
     public void deleteContent(String email, Long contentId) {
         User user = getUser(email);

@@ -2,6 +2,7 @@ package com.example.cinema.entity;
 
 import com.example.cinema.entity.common.BaseEntity;
 import com.example.cinema.type.ContentStatus;
+import com.example.cinema.type.EncodingStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -47,6 +48,13 @@ public class Content extends BaseEntity {
     @Column(nullable = false)
     private ContentStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "encoding_status")
+    private EncodingStatus encodingStatus;
+
+    @Column(name = "encoding_error", length = 2000)
+    private String encodingError;
+
     @Column(name = "total_view")
     @Builder.Default
     private Long totalView = 0L;
@@ -65,7 +73,6 @@ public class Content extends BaseEntity {
     public void resetMonthView() {
         this.monthView = 0L;
     }
-
     /**
      * 조회수 증가 (totalView와 monthView 모두 증가)
      */
@@ -80,8 +87,21 @@ public class Content extends BaseEntity {
         this.title = title;
         this.description = description;
         this.status = (status==null) ? ContentStatus.DRAFT : status;
-        this.totalView = 0L; // 추가
-        this.monthView = 0L; // 추가
+    }
+
+    public void markEncoding() {
+        this.encodingStatus = EncodingStatus.ENCODING;
+        this.encodingError = null;
+    }
+
+    public void markEncodingReady() {
+        this.encodingStatus = EncodingStatus.READY;
+        this.encodingError = null;
+    }
+
+    public void markEncodingFailed(String error) {
+        this.encodingStatus = EncodingStatus.FAILED;
+        this.encodingError = error;
     }
 
     public void updateInfo(String title, String description, ContentStatus status) {

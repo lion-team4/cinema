@@ -86,6 +86,18 @@ public class ContentController {
                 .body(ApiResponse.success("콘텐츠가 삭제되었습니다."));
     }
 
+    // 인코딩 상태 조회
+    @GetMapping("/{contentId}/encoding-status")
+    public ResponseEntity<ApiResponse<ContentEncodingStatusResponse>> getEncodingStatus(
+            @PathVariable Long contentId,
+            Principal principal
+    ) {
+        String email = principal.getName();
+        ContentEncodingStatusResponse response = contentService.getEncodingStatus(email, contentId);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.success("인코딩 상태를 조회했습니다.", response));
+    }
+
     // 콘텐츠 조회(nickname 필드 채우면 유저 한정)
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ContentSearchResponse>>>search(@ModelAttribute ContentSearchRequest request) {
