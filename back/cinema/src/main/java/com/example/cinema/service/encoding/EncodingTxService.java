@@ -2,6 +2,8 @@ package com.example.cinema.service.encoding;
 
 import com.example.cinema.entity.Content;
 import com.example.cinema.entity.MediaAsset;
+import com.example.cinema.exception.BusinessException;
+import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.repository.content.ContentRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -21,7 +23,7 @@ public class EncodingTxService {
     @Transactional
     public void linkHlsMaster(long contentId, long hlsAssetId) {
         Content content = contentRepository.findByIdForUpdate(contentId)
-                .orElseThrow(() -> new IllegalArgumentException("content not found: " + contentId));
+                .orElseThrow(() -> new BusinessException("콘텐츠를 찾을 수 없습니다. ID: " + contentId, ErrorCode.CONTENT_NOT_FOUND));
 
         if (content.getVideoHlsMaster() != null) return;
 

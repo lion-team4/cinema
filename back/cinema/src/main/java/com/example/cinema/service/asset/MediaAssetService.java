@@ -3,6 +3,8 @@ package com.example.cinema.service.asset;
 import com.example.cinema.entity.Content;
 import com.example.cinema.entity.MediaAsset;
 import com.example.cinema.entity.User;
+import com.example.cinema.exception.BusinessException;
+import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.repository.mediaAsset.MediaAssetRepository;
 import com.example.cinema.type.AssetType;
 import com.example.cinema.type.Visibility;
@@ -49,7 +51,7 @@ public class MediaAssetService {
             case POSTER_IMAGE -> content.attachAssets(asset, null, null);
             case VIDEO_SOURCE -> content.attachAssets(null, asset, null);
             case VIDEO_HLS_MASTER -> content.attachAssets(null, null, asset);
-            default -> throw new IllegalArgumentException("Unsupported content asset type: " + type);
+            default -> throw new BusinessException("지원하지 않는 에셋 타입입니다: " + type, ErrorCode.INVALID_INPUT_VALUE);
         }
     }
 }

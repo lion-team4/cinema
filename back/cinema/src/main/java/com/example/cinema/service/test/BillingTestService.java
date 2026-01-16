@@ -1,6 +1,8 @@
 package com.example.cinema.service.test;
 
 import com.example.cinema.entity.*;
+import com.example.cinema.exception.BusinessException;
+import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.infrastructure.payment.toss.TossPaymentClient;
 import com.example.cinema.infrastructure.payment.toss.dto.TossBillingResponse;
 import com.example.cinema.infrastructure.payment.toss.dto.TossPaymentResponse;
@@ -63,7 +65,7 @@ public class BillingTestService {
 
         // 2. User 조회 (customerKey = nickname)
         User user = userRepository.findByNickname(customerKey)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // 3. BillingKey 저장
         BillingKey billingKey = BillingKey.builder()
@@ -106,14 +108,14 @@ public class BillingTestService {
      */
     public TossPaymentResponse pay(String customerKey, Long amount) {
         User user = userRepository.findByNickname(customerKey)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Subscription subscription = subscriptionRepository.findBySubscriber(user)
-                .orElseThrow(() -> new RuntimeException("구독 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException("구독 정보를 찾을 수 없습니다.", ErrorCode.ENTITY_NOT_FOUND));
 
         BillingKey billingKey = subscription.getBillingKey();
         if (billingKey == null || billingKey.getStatus() != BillingKeyStatus.ACTIVE) {
-            throw new RuntimeException("활성화된 빌링키가 없습니다.");
+            throw new BusinessException("활성화된 빌링키가 없습니다.", ErrorCode.BILLING_KEY_NOT_FOUND);
         }
 
         String orderId = "TEST_ORDER_" + UUID.randomUUID().toString().substring(0, 8);
@@ -151,10 +153,10 @@ public class BillingTestService {
     @Transactional(readOnly = true)
     public List<Payment> getHistory(String customerKey) {
         User user = userRepository.findByNickname(customerKey)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Subscription subscription = subscriptionRepository.findBySubscriber(user)
-                .orElseThrow(() -> new RuntimeException("구독 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException("구독 정보를 찾을 수 없습니다.", ErrorCode.ENTITY_NOT_FOUND));
 
         return paymentRepository.findAll().stream()
                 .filter(p -> p.getSubscription().getSubscriptionId().equals(subscription.getSubscriptionId()))
@@ -167,7 +169,7 @@ public class BillingTestService {
      */
     public void removeBillingKey(String customerKey) {
         User user = userRepository.findByNickname(customerKey)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Subscription subscription = subscriptionRepository.findBySubscriber(user)
                 .orElse(null);

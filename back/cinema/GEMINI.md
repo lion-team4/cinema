@@ -1,116 +1,70 @@
-# Cinema Project Context (GEMINI.md)
+# Cinema 프로젝트 컨텍스트 (GEMINI.md)
 
-## 1. Project Overview
-**Name:** Cinema
-**Description:** A Spring Boot-based backend application for a cinema/video streaming platform.
-**Last Updated:** 2026-01-14 (Wednesday)
+## 1. 프로젝트 개요
+**이름:** Cinema
+**설명:** 시네마 및 비디오 스트리밍 플랫폼을 위한 Spring Boot 기반 백엔드 애플리케이션.
+**최종 업데이트:** 2026-01-16 (금요일)
 
-**Current Status:**
-*   **Security:** **Implemented**. JWT infrastructure (`JwtTokenProvider`, `JwtAuthenticationFilter`, `ProjectSecurityConfig`) is fully operational.
-*   **User Module:** **Implemented**. `UserService` handles Signup, Login (JWT), Profile, and Token Reissue.
-*   **Subscription Module:** **Implemented**. `SubscriptionService` supports Plan Creation, Billing Key management, Recurring Payments (Toss), and History.
-*   **Billing Module:** **Refactored**. `BillingController` uses `SubscriptionService` and new `BillingRequest`/`BillingResponse` DTOs.
-*   **Content Module:** **Implemented (Partial)**. 
-    *   **Repository**: ✅ Optimized (`getTagsByContentId`) & QueryDSL Implemented.
-    *   **Service**: ✅ `ContentService` implemented (Search logic). Package refactored to `service.content`.
-    *   **Controller**: ⚠️ **Bug**. `ContentController` exists but uses `@RestController("/contents")` (Bean Name) instead of `@RequestMapping("/contents")`. This causes endpoints to be mapped to root `/`. Duplicate file was removed.
-*   **Schedule Module:** **Pending Implementation**. Entities (`ScheduleItem`, `ScheduleDay`) and DTOs exist, but `ScheduleService`, `ScheduleController`, and `ScheduleRepository` are **missing**.
-*   **Infrastructure:** Database (MySQL), QueryDSL, Swagger, and Toss Payment configuration are ready.
+**현재 상태:**
+*   **보안 (Security):** **구현 완료**. JWT 인프라(`JwtTokenProvider`, `JwtAuthenticationFilter`, `ProjectSecurityConfig`) 정상 작동.
+*   **사용자 모듈 (User):** **구현 완료**. 회원가입, 로그인, 프로필 관리, 토큰 재발급 기능 포함.
+*   **구독 모듈 (Subscription):** **구현 완료**. 구독 플랜, 빌링키 관리, 토스 페이먼츠 연동 정기 결제 및 내역 조회 지원.
+*   **콘텐츠 모듈 (Content):** **구현 완료**.
+    *   **레포지토리**: QueryDSL을 이용한 검색 최적화 완료.
+    *   **서비스**: 전체 CRUD 및 검색 로직 구현 완료.
+    *   **컨트롤러**: `ContentController` 매핑 및 기능 검증 완료.
+*   **스케줄 모듈 (Schedule):** **구현 완료 (부분적)**.
+    *   **서비스**: `ScheduleService` 비즈니스 로직 구현 완료.
+    *   **레포지토리**: `ScheduleDayRepository`, `ScheduleItemRepository` 존재.
+    *   **컨트롤러**: `ScheduleController`가 존재하며 엔드포인트 검증 단계.
+*   **예외 처리 (Exception Handling):** **리팩토링 완료**.
+    *   `ErrorCode`, `BusinessException`, `GlobalExceptionHandler`를 통한 구조화.
+    *   상세 내용은 `EXCEPTION_SPEC.md` 참조.
+*   **인프라:** MySQL, QueryDSL, Swagger, 토스 페이먼츠 설정 완료.
 
-## 2. Technical Stack
-*   **Language:** Java 21
-*   **Framework:** Spring Boot 3.5.9
-*   **Build Tool:** Gradle
-*   **Database:** MySQL (`cinema-db`)
-*   **ORM:** JPA + Hibernate
-*   **Query:** QueryDSL 5.0.0
-*   **Docs:** SpringDoc OpenAPI (Swagger) v2.8.6
-*   **Security:** Spring Security + JWT
-*   **Payment:** Toss Payments
+## 2. 기술 스택
+*   **언어:** Java 21
+*   **프레임워크:** Spring Boot 3.5.9
+*   **빌드 도구:** Gradle
+*   **데이터베이스:** MySQL
+*   **ORM:** JPA + Hibernate + QueryDSL 5.0.0
+*   **문서화:** SpringDoc OpenAPI (Swagger) v2.8.6
+*   **보안:** Spring Security + JWT
 
-## 3. Project Structure & Status
+## 3. 프로젝트 구조
 `src/main/java/com/example/cinema`:
-*   `config/`:
-    *   `auth/`: ✅ `ProjectSecurityConfig`, `JwtTokenProvider`, `JwtAuthenticationFilter`.
-    *   `TossPaymentConfig`, `QueryDslConfig`: ✅ Ready.
-*   `controller/`:
-    *   `auth/AuthController`: ✅ Implemented.
-    *   `user/UserController`: ✅ Implemented.
-    *   `subscription/SubscriptionController`: ✅ Implemented.
-    *   `content/ContentController`: ⚠️ **Annotation Bug**. `@RestController("/contents")` -> Needs `@RequestMapping("/contents")`.
-    *   `test/BillingController`: ✅ Refactored to use `SubscriptionService`.
-*   `service/`:
-    *   `user/UserService`: ✅ Implemented.
-    *   `subscription/SubscriptionService`: ✅ Implemented.
-    *   `content/ContentService`: ✅ Implemented (Search).
-    *   `schedule/ScheduleService`: ❌ **Missing**.
-*   `repository/`: 
-    *   `content/ContentRepository`: ✅ Optimized.
-    *   `content/custom/ContentRepositoryImpl`: ✅ Implemented.
-    *   **Missing** `ScheduleRepository`.
-*   `entity/`: ✅ Implemented (`User`, `Subscription`, `Content`, `ScheduleItem`, `Settlement`, etc.).
-*   `dto/`:
-    *   `billing/`: ✅ `BillingRequest`, `BillingResponse` (New).
-    *   `auth`, `common`, `content`, `schedule`, `settlement`, `subscription`, `theater`, `user`: ✅ Defined.
-*   `exception/`: ❌ **Empty**. Global exception handling is missing.
+*   `config/`: 보안, 토스 결제, QueryDSL 등 설정 파일.
+*   `controller/`: 각 모듈별 API 컨트롤러.
+*   `service/`: 비즈니스 로직. `encoding/`에 HLS 트랜스코딩 로직 포함.
+*   `repository/`: JPA 레포지토리 및 QueryDSL 구현체.
+*   `entity/`: JPA 엔티티 클래스.
+*   `dto/`: 요청/응답용 DTO 클래스.
+*   `exception/`: **리팩토링 완료**. 전역 예외 처리기 및 커스텀 예외 클래스.
 
-## 4. Analysis & Action Items
+## 4. 구현 로드맵 및 현황
 
-### 📊 Project Health Check (2026-01-14)
-*   **Code Quality**:
-    *   ✅ **Duplicate Removed**: The conflicting `ContentController` in the parent package has been deleted.
-    *   ✅ **Refactoring**: `ContentService` package renamed to `content` (from `contentService`), adhering to naming conventions.
-    *   ⚠️ **Annotation Error**: `ContentController`'s `@RestController("/contents")` is semantically incorrect for URL mapping. It sets the bean name, not the path.
-    *   ⚠️ **Exception Handling**: No global error handling yet.
-*   **Architecture**:
-    *   ✅ **Layered Architecture**: Controller -> Service -> Repository flow is now established for Content Search.
-    *   ❌ **Missing Logic**: Schedule module is the next major block.
+### ✅ 완료됨
+1.  **기반 구축**: 엔티티 설계, 레포지토리 레이어, 보안(JWT) 설정.
+2.  **커머스**: 구독 서비스 및 토스 페이먼츠 연동.
+3.  **콘텐츠 코어**: 콘텐츠 CRUD, 검색 서비스 및 컨트롤러 구현.
+4.  **예외 처리 표준화**:
+    *   모든 서비스 레이어에 `BusinessException` 적용.
+    *   `ApiResponse`를 통한 JSON 응답 포맷 통일.
+    *   `EXCEPTION_SPEC.md` 가이드 생성.
 
-### 🚨 Critical Gaps (Immediate Actions)
-1.  **Fix ContentController Annotation**:
-    *   **Action**: Change `@RestController("/contents")` to `@RestController` + `@RequestMapping("/contents")`.
-2.  **Schedule Service Implementation**:
-    *   **Create**: `ScheduleRepository`, `ScheduleService`, `ScheduleController`.
-    *   **Logic**: Manage cinema schedules (`ScheduleItem`, `ScheduleDay`).
-3.  **Global Exception Handling**:
-    *   **Implement**: `GlobalExceptionHandler` with `@RestControllerAdvice`.
+### 🚧 진행 중 / 검증 필요
+1.  **스케줄 모듈**:
+    *   서비스 및 레포지토리 구현 상태 확인 완료.
+    *   `ScheduleController` 엔드포인트 작동 여부 및 통합 테스트 필요.
+2.  **API 문서화**:
+    *   Swagger UI를 통한 API 명세 최종 확인.
 
-### 📅 Implementation Roadmap
-1.  **Phase 1: Foundation & User (Completed)**
-    *   [x] Entity Design
-    *   [x] Repository Layer
-    *   [x] Security (JWT)
-    *   [x] User Service (Auth/Profile)
+### 📅 향후 계획
+1.  **스케줄 모듈 검증**: 스케줄 생성/조회 기능의 엔드투엔드 테스트.
+2.  **시청 기록 (Watch History)**: 사용자별 시청 데이터 추적 로직 구현.
+3.  **정산 (Settlement)**: 감독/판매자를 위한 정산 처리 시스템 구축.
 
-2.  **Phase 2: Commerce & Subscription (Completed)**
-    *   [x] Toss Payment Integration
-    *   [x] Subscription Service logic
-
-3.  **Phase 3: Core Content & Schedule (Current Priority)**
-    *   [x] Content Repository & Test Data
-    *   [x] Content Service (Search)
-    *   [ ] **Fix ContentController Mapping**
-    *   [ ] **Create & Implement Schedule Module**
-    *   [ ] **Implement Global Exception Handling**
-
-4.  **Phase 4: Advanced Features & Cleanup**
-    *   [ ] Watch History Tracking
-    *   [ ] Settlement Processing
-    *   [ ] API Documentation (Swagger) Validation
-
-## 5. Comprehensive Analysis Report (2026-01-14)
-
-### 5.1 Overview
-The **Content Module** is taking shape. The duplicate controller issue is resolved, and the service layer is implemented. However, a minor but functional bug exists in the Controller annotation which will misroute API requests.
-
-### 5.2 Key Findings
-1.  **Content Module**:
-    *   **Progress**: Service and Repository layers are connected.
-    *   **Bug**: `ContentController` mapping is incorrect (`@RestController("/contents")`). This means `GET /api/contents` (or similar) won't work; it will likely listen at `GET /`.
-2.  **Refactoring**:
-    *   The developer has cleaned up package names (`contentService` -> `content`) and removed the duplicate file.
-
-### 5.3 Recommendations
-*   **Immediate Fix**: Correct the `ContentController` annotation to `@RequestMapping("/contents")`.
-*   **Next Feature**: Start the **Schedule Module**. This is the last major missing piece for the MVP.
-*   **Technical Debt**: Add `GlobalExceptionHandler` to prevent raw stack traces from leaking to clients.
+## 5. 최근 변경 사항 (2026-01-16)
+*   **예외 처리 리팩토링**: `UserService`, `SubscriptionService`, `ContentService`, `ScheduleService` 등 모든 서비스의 예외 메시지를 한국어로 통일하고 표준 구조 적용.
+*   **버그 수정 및 정리**: `ContentController` 매핑 오류 확인 및 불필요한 import 제거.
+*   **문서화**: 예외 처리 규격을 정리한 `EXCEPTION_SPEC.md` 추가 및 `GEMINI.md` 한글화 업데이트.

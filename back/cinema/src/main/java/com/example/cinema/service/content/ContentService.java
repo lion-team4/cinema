@@ -8,13 +8,14 @@ import com.example.cinema.dto.content.*;
 import com.example.cinema.entity.Content;
 import com.example.cinema.entity.MediaAsset;
 import com.example.cinema.entity.User;
+import com.example.cinema.exception.BusinessException;
+import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.mediaAsset.MediaAssetRepository;
 import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.type.AssetType;
 import com.example.cinema.type.ContentStatus;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +36,7 @@ public class ContentService {
 
         //유저 권한 확인
         if (!user.getSeller())
-            throw new AccessDeniedException("감독 등록 후에 이용가능합니다.");
+            throw new BusinessException("감독 등록 후에 이용가능합니다.", ErrorCode.ACCESS_DENIED);
 
         Content content = contentRepository.save(
                 new Content(user, contentRequest.getTitle(), contentRequest.getDescription()));
@@ -88,7 +89,7 @@ public class ContentService {
         validateOwner(user, content);
 
         if (content.getStatus() == ContentStatus.PUBLISHED)
-            throw new AccessDeniedException("상영신청이 완료된 컨텐츠는 수정할 수 없습니다.");
+            throw new BusinessException("상영신청이 완료된 컨텐츠는 수정할 수 없습니다.", ErrorCode.INVALID_INPUT_VALUE);
 
         //updateRequest -> mediaAssets 추출 후 조회
 //        MediaAsset poster = getAssetOrThrow(
@@ -122,31 +123,31 @@ public class ContentService {
 
     private void validateAssetType(MediaAsset asset, AssetType expected) {
         if (asset.getAssetType() != expected) {
-            throw new IllegalArgumentException(
-                    "자산 타입이 올바르지 않습니다. expected=" + expected + ", actual=" + asset.getAssetType());
+            throw new BusinessException(
+                    "자산 타입이 올바르지 않습니다. expected=" + expected + ", actual=" + asset.getAssetType(), ErrorCode.INVALID_INPUT_VALUE);
         }
     }
 
     private User getUser(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(()-> new IllegalArgumentException("해당 유저가 존재하지 않습니다."));
+                .orElseThrow(()-> new BusinessException("해당 유저가 존재하지 않습니다.", ErrorCode.USER_NOT_FOUND));
     }
 
     private Content getContent(Long contentId) {
         return contentRepository.findById(contentId)
-                .orElseThrow(()-> new IllegalArgumentException("해당 영화가 존재하지 않습니다."));
+                .orElseThrow(()-> new BusinessException("해당 영화가 존재하지 않습니다.", ErrorCode.CONTENT_NOT_FOUND));
     }
 
     private void validateOwner(User user, Content content) {
         if(!user.getUserId().equals(content.getOwner().getUserId()))
-            throw new AccessDeniedException("접근 권한이 없습니다.");
+            throw new BusinessException("접근 권한이 없습니다.", ErrorCode.ACCESS_DENIED);
     }
     private MediaAsset getAssetOrThrow(Long assetId, String notFoundMsg) {
         if (assetId == null) {
-            throw new IllegalArgumentException("assetId는 null일 수 없습니다.");
+            throw new BusinessException("assetId는 null일 수 없습니다.", ErrorCode.INVALID_INPUT_VALUE);
         }
         return mediaAssetRepository.findById(assetId)
-                .orElseThrow(() -> new IllegalArgumentException(notFoundMsg));
+                .orElseThrow(() -> new BusinessException(notFoundMsg, ErrorCode.ENTITY_NOT_FOUND));
     }
 
     private MediaAsset getAssetOrThrow(Long assetId, AssetType expectedType, String notFoundMsg) {

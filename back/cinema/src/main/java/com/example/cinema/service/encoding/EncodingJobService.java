@@ -3,6 +3,8 @@ package com.example.cinema.service.encoding;
 import com.example.cinema.entity.Content;
 import com.example.cinema.entity.MediaAsset;
 import com.example.cinema.entity.User;
+import com.example.cinema.exception.BusinessException;
+import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.service.asset.MediaAssetService;
@@ -42,13 +44,13 @@ public class EncodingJobService {
     @Transactional
     public String start(long contentId) {
         Content content = contentRepository.findByIdForUpdate(contentId)
-                .orElseThrow(() -> new IllegalArgumentException("content not found: " + contentId));
+                .orElseThrow(() -> new BusinessException("콘텐츠를 찾을 수 없습니다. ID: " + contentId, ErrorCode.CONTENT_NOT_FOUND));
 
         if (content.getVideoSource() == null) {
-            throw new IllegalStateException("videoSource not linked. contentId=" + contentId);
+            throw new BusinessException("원본 비디오 파일이 연결되지 않았습니다. contentId=" + contentId, ErrorCode.INVALID_INPUT_VALUE);
         }
         if (content.getVideoHlsMaster() != null) {
-            throw new IllegalStateException("HLS already exists. contentId=" + contentId);
+            throw new BusinessException("이미 HLS 변환이 완료된 콘텐츠입니다. contentId=" + contentId, ErrorCode.INVALID_INPUT_VALUE);
         }
 
         String sourceKey = content.getVideoSource().getObjectKey();
@@ -71,7 +73,7 @@ public class EncodingJobService {
             );
 
             User owner = userRepository.findById(ownerUserId)
-                    .orElseThrow(() -> new IllegalArgumentException("owner not found: " + ownerUserId));
+                    .orElseThrow(() -> new BusinessException("소유자 정보를 찾을 수 없습니다. ID: " + ownerUserId, ErrorCode.USER_NOT_FOUND));
 
             MediaAsset hls = mediaAssetService.createAsset(
                     owner,

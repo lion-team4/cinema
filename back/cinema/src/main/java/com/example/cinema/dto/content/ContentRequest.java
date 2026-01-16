@@ -12,11 +12,11 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ContentRequest {
-    @NotBlank
-    @Size(min = 1, max = 50)
+    @NotBlank(message = "제목은 필수 입력값입니다.")
+    @Size(min = 1, max = 50, message = "제목은 1자 이상 50자 이하여야 합니다.")
     private String title;
 
-    @NotBlank
-    @Size(max = 500)
+    @NotBlank(message = "설명은 필수 입력값입니다.")
+    @Size(max = 500, message = "설명은 500자 이하여야 합니다.")
     private String description;
 }
