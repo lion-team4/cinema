@@ -22,16 +22,16 @@ public class ReviewCreateRequest {
     /**
      * 별점 (1~5 정수)
      */
-    @NotNull(message = "Rating is required")
-    @Min(value = 1, message = "Rating must be at least 1")
-    @Max(value = 5, message = "Rating must be at most 5")
+    @NotNull(message = "별점은 필수입니다.")
+    @Min(value = 1, message = "별점은 1점 이상이어야 합니다.")
+    @Max(value = 5, message = "별점은 5점 이하이어야 합니다.")
     private Integer rating;
 
     /**
      * 리뷰 대상 콘텐츠 ID
      */
     @JsonProperty("content-id")
-    @NotNull(message = "Content ID is required")
+    @NotNull(message = "콘텐츠 ID는 필수입니다.")
     private Long contentId;
 
     /**

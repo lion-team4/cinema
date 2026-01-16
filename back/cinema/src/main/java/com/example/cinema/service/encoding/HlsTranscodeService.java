@@ -1,5 +1,7 @@
 package com.example.cinema.service.encoding;
 
+import com.example.cinema.exception.BusinessException;
+import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.infra.ffmpeg.FfmpegDockerRunner;
 import com.example.cinema.infra.s3.S3ObjectService;
 import lombok.RequiredArgsConstructor;
@@ -52,14 +54,16 @@ public class HlsTranscodeService {
 
             Path m3u8 = outDir.resolve("index.m3u8");
             if (!Files.exists(m3u8)) {
-                throw new IllegalStateException("index.m3u8 not found");
+                throw new BusinessException("변환 결과 파일(index.m3u8)을 찾을 수 없습니다.", ErrorCode.INTERNAL_SERVER_ERROR);
             }
 
             s3ObjectService.uploadFile(masterKey, m3u8, "application/vnd.apple.mpegurl", "public, max-age=60");
 
             return tsFiles.size();
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
-            throw new IllegalStateException("HLS transcode failed: " + e.getMessage(), e);
+            throw new BusinessException("HLS 변환 작업 중 오류가 발생했습니다: " + e.getMessage(), ErrorCode.INTERNAL_SERVER_ERROR);
         } finally {
             safeDelete(jobDir);
         }

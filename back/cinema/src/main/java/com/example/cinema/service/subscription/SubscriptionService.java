@@ -3,6 +3,8 @@ package com.example.cinema.service.subscription;
 import com.example.cinema.dto.billing.BillingResponse;
 import com.example.cinema.dto.common.PageResponse;
 import com.example.cinema.dto.subscription.*;
+import com.example.cinema.exception.BusinessException;
+import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.infrastructure.payment.toss.dto.TossBillingResponse;
 import com.example.cinema.infrastructure.payment.toss.dto.TossPaymentResponse;
 import com.example.cinema.entity.BillingKey;
@@ -46,7 +48,7 @@ public class SubscriptionService {
     public FirstSubscriptionResponse createSubscription(Long userId, SubscriptionCreateRequest request) {
         // 1. 유저 확인
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // [수정된 로직] 이미 구독 레코드가 있는 경우
         Optional<Subscription> existingOpt = subscriptionRepository.findBySubscriber(user);
@@ -56,7 +58,7 @@ public class SubscriptionService {
 
             // 1. 이미 사용 중인 유저면 에러
             if (subscription.getIsActive() && subscription.getStatus() == SubscriptionStatus.ACTIVE) {
-                throw new IllegalStateException("이미 활성화된 구독이 있습니다.");
+                throw new BusinessException(ErrorCode.SUBSCRIPTION_ALREADY_EXISTS);
             }
 
             // 2. 해지(CANCELED) 혹은 만료(EXPIRED)된 유저라면 정보 업데이트(재활성화)
@@ -105,10 +107,10 @@ public class SubscriptionService {
     //구독 정보 조회
     public SubscriptionResponse getMySubscription(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Subscription subscription = subscriptionRepository.findBySubscriber(user)
-                .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException("구독 정보를 찾을 수 없습니다.", ErrorCode.ENTITY_NOT_FOUND));
 
         return SubscriptionResponse.from(subscription);
     }
@@ -123,10 +125,10 @@ public class SubscriptionService {
             Pageable pageable
     ) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Subscription subscription = subscriptionRepository.findBySubscriber(user)
-                .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException("구독 정보를 찾을 수 없습니다.", ErrorCode.ENTITY_NOT_FOUND));
 
 
         var paymentPage = (startDate != null && endDate != null)
@@ -146,10 +148,10 @@ public class SubscriptionService {
     @Transactional
     public SubscriptionResponse updateBillingKey(Long userId, SubscriptionUpdateBillingRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Subscription subscription = subscriptionRepository.findBySubscriber(user)
-                .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException("구독 정보를 찾을 수 없습니다.", ErrorCode.ENTITY_NOT_FOUND));
 
         // 기존 빌링키 비활성화
         if (subscription.getBillingKey() != null) {
@@ -177,10 +179,10 @@ public class SubscriptionService {
     @Transactional
     public void cancelSubscription(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Subscription subscription = subscriptionRepository.findBySubscriber(user)
-                .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException("구독 정보를 찾을 수 없습니다.", ErrorCode.ENTITY_NOT_FOUND));
 
         // 구독 취소 (Entity 메서드 활용)
         subscription.cancel();
@@ -194,10 +196,10 @@ public class SubscriptionService {
 
     public BillingResponse getBilling(Long userId){
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Subscription subscription = subscriptionRepository.findBySubscriber(user)
-                .orElseThrow(() -> new IllegalStateException("구독 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException("구독 정보를 찾을 수 없습니다.", ErrorCode.ENTITY_NOT_FOUND));
 
         return BillingResponse.from(subscription.getBillingKey());
     }
@@ -218,14 +220,14 @@ public class SubscriptionService {
                     subscription.getPrice()
             );
         } catch (Exception e) {
-            throw new RuntimeException("초기 결제 요청 중 오류가 발생했습니다: " + e.getMessage());
+            throw new BusinessException("초기 결제 요청 중 오류가 발생했습니다: " + e.getMessage(), ErrorCode.PAYMENT_FAILED);
         }
 
         Payment payment = paymentRepository
                 .save(Payment.create(subscription, paymentResponse));
 
         if (payment.getStatus() == PaymentStatus.FAILED) {
-            throw new IllegalStateException("초기 결제 승인이 거절되었습니다.");
+            throw new BusinessException("초기 결제 승인이 거절되었습니다.", ErrorCode.PAYMENT_FAILED);
         }
 
         return FirstSubscriptionResponse.from(
@@ -253,7 +255,7 @@ public class SubscriptionService {
     public void processRecurringPayment(Long subscriptionId) {
         // 스레드 안전성을 위해 ID로 다시 조회 (영속성 컨텍스트 분리)
         Subscription subscription = subscriptionRepository.findById(subscriptionId)
-                .orElseThrow(() -> new IllegalArgumentException("Subscription not found: " + subscriptionId));
+                .orElseThrow(() -> new BusinessException("Subscription not found: " + subscriptionId, ErrorCode.ENTITY_NOT_FOUND));
 
         if (subscription.getStatus() != SubscriptionStatus.ACTIVE) return;
         if (subscription.getBillingKey() == null) return;

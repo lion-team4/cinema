@@ -20,7 +20,7 @@ public class SubscriptionCreateRequest {
     /**
      * PG사(프론트엔드 SDK)로부터 발급받은 1회성 인증 키
      */
-    @NotBlank(message = "Auth key is required")
+    @NotBlank(message = "인증 키는 필수입니다.")
     private String authKey;
     
     // TestController에서 사용하기 위한 setter
