@@ -5,11 +5,13 @@ import com.example.cinema.entity.MediaAsset;
 import com.example.cinema.entity.User;
 import com.example.cinema.exception.BusinessException;
 import com.example.cinema.exception.ErrorCode;
+import com.example.cinema.infra.s3.S3ObjectService;
 import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.service.asset.MediaAssetService;
 import com.example.cinema.service.asset.S3KeyFactory;
 import com.example.cinema.type.AssetType;
+import com.example.cinema.type.EncodingStatus;
 import com.example.cinema.type.Visibility;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -33,6 +35,7 @@ public class EncodingJobService {
     private final MediaAssetService mediaAssetService;
     private final S3KeyFactory keyFactory;
     private final EncodingTxService encodingTxService;
+    private final S3ObjectService s3ObjectService;
 
     @Value("${upload.verify.video_min_bytes}")
     private long minBytesVideo;
@@ -52,9 +55,18 @@ public class EncodingJobService {
         if (content.getVideoHlsMaster() != null) {
             throw new BusinessException("이미 HLS 변환이 완료된 콘텐츠입니다. contentId=" + contentId, ErrorCode.INVALID_INPUT_VALUE);
         }
+        if (content.getEncodingStatus() == EncodingStatus.ENCODING) {
+            throw new BusinessException("현재 인코딩 진행 중입니다. contentId=" + contentId, ErrorCode.INVALID_INPUT_VALUE);
+        }
 
         String sourceKey = content.getVideoSource().getObjectKey();
         Long ownerUserId = content.getOwner().getUserId();
+
+        if (content.getEncodingStatus() == EncodingStatus.FAILED) {
+            s3ObjectService.deletePrefix("hls/" + contentId + "/");
+        }
+
+        content.markEncoding();
 
         String jobId = "ENC-" + contentId + "-" + System.currentTimeMillis();
         log.info("Encoding accepted. jobId={} contentId={} sourceKey={}", jobId, contentId, sourceKey);
@@ -85,10 +97,13 @@ public class EncodingJobService {
             );
 
             encodingTxService.linkHlsMaster(contentId, hls.getAssetId());
+            encodingTxService.markReady(contentId);
 
             log.info("Encoding success. jobId={} contentId={} segCount={}", jobId, contentId, segCount);
 
         } catch (Exception e) {
+            encodingTxService.markFailed(contentId, e.getMessage());
+            s3ObjectService.deletePrefix("hls/" + contentId + "/");
             log.error("Encoding failed. jobId={} contentId={} err={}", jobId, contentId, e.getMessage(), e);
         }
     }

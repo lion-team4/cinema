@@ -24,17 +24,17 @@ import static org.springframework.boot.autoconfigure.security.servlet.PathReques
 public class ProjectSecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
-//     @Bean
-//     @Order(0)
-//     public SecurityFilterChain h2ConsoleSecurityFilterChain(HttpSecurity http) throws Exception {
-//         http
-//                 .securityMatcher(toH2Console())
-//                 .csrf(csrf -> csrf.disable())
-//                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-//                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+    @Bean
+    @Order(0)
+    public SecurityFilterChain h2ConsoleSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher(toH2Console())
+                .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
 
-//         return http.build();
-//     }
+        return http.build();
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -76,10 +76,16 @@ public class ProjectSecurityConfig {
                                 "/users/*/contents",
                                 "/contents/search",
                                 "/contents/**",
-                                "/media-assets/**",
-                                "/schedules/**"
+                                "/media-assets/**"
                         ).permitAll()
 
+                        // 테스트 페이지
+                        .requestMatchers(
+                                "/subscription-test",
+                                "/subscription-test.html",
+                                "/test/**",
+                                "/api/test/**"
+                        ).permitAll()
 
                         /* ==================================================
                          * PROTECTED (인증 필요)
@@ -119,11 +125,6 @@ public class ProjectSecurityConfig {
                                 "/users/subscriptions",
                                 "/users/subscriptions/**"
                         ).authenticated()
-
-
-                        .requestMatchers(
-                                "/admin/platform-revenue/**"
-                        ).permitAll()
 
                         // 정산
                         .requestMatchers(

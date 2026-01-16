@@ -8,11 +8,18 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.Delete;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -76,6 +83,33 @@ public class S3ObjectService {
                 .build();
 
         s3.putObject(req, RequestBody.fromFile(file));
+    }
+
+    public void deletePrefix(String prefix) {
+        String token = null;
+        do {
+            ListObjectsV2Response resp = s3.listObjectsV2(
+                    ListObjectsV2Request.builder()
+                            .bucket(bucket)
+                            .prefix(prefix)
+                            .continuationToken(token)
+                            .build()
+            );
+
+            List<ObjectIdentifier> toDelete = new ArrayList<>();
+            resp.contents().forEach(obj -> toDelete.add(
+                    ObjectIdentifier.builder().key(obj.key()).build()
+            ));
+
+            if (!toDelete.isEmpty()) {
+                s3.deleteObjects(DeleteObjectsRequest.builder()
+                        .bucket(bucket)
+                        .delete(Delete.builder().objects(toDelete).build())
+                        .build());
+            }
+
+            token = resp.isTruncated() ? resp.nextContinuationToken() : null;
+        } while (token != null);
     }
 
     private void sleepQuiet(long ms) {
