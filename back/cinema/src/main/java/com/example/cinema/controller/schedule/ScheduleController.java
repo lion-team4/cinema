@@ -1,6 +1,7 @@
 package com.example.cinema.controller.schedule;
 
 import com.example.cinema.dto.common.ApiResponse;
+import com.example.cinema.dto.common.PageResponse;
 import com.example.cinema.dto.schedule.*;
 import com.example.cinema.service.schedule.ScheduleService;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,15 @@ import java.security.Principal;
 public class ScheduleController {
 
     private final ScheduleService scheduleService;
+
+    /**
+     * 상영 일정을 검색합니다.
+     */
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<ScheduleSearchResponse>>> searchSchedules(
+            @ModelAttribute ScheduleSearchRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("상영 일정 조회 성공", scheduleService.searchSchedules(request)));
+    }
 
 
     /**

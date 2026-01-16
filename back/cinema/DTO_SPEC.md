@@ -8,62 +8,89 @@
 | `ApiResponse` | API 응답 공통 래퍼 (성공/실패 여부, 데이터 포함) |
 | `PageResponse` | 페이징 처리된 목록 응답 래퍼 |
 
-## 2. User
+## 2. Auth
+**Package:** `com.example.cinema.dto.auth`
+
+| Class | Description | Usage |
+| :--- | :--- | :--- |
+| `SignupRequest` | 회원가입 요청 | `POST /auth/signup` |
+| `LoginRequest` | 로그인 요청 | `POST /auth/login` |
+| `TokenRefreshRequest` | 토큰 재발급 요청 | `POST /auth/reissue` |
+| `TokenResponse` | JWT 토큰 응답 | `POST /auth/login`, `POST /auth/reissue` |
+
+## 3. User
 **Package:** `com.example.cinema.dto.user`
 
 | Class | Description | Usage |
 | :--- | :--- | :--- |
-| `UserDetailResponse` | 유저 상세 정보 (본인/타인 프로필) | `GET /users/me`, `GET /users/search/{nick}/info` |
-| `UserSearchResponse` | 유저 검색 목록 (경량화 정보) | `GET /users/search/{keyword}` |
+| `UserGetResponse` | 유저 정보 조회 응답 | `GET /users/me`, `POST /auth/signup` |
+| `UserUpdateRequest` | 유저 정보 수정 요청 | `PATCH /users/me` |
+| `UserUpdateResponse` | 유저 정보 수정 응답 | `PATCH /users/me` |
+| `UserDeleteRequest` | 회원 탈퇴 요청 (비밀번호 포함) | `DELETE /users/me` |
+| `UserSearchResponse` | 유저 검색 목록 (Planned) | - |
 
-## 3. Content
+## 4. Content
 **Package:** `com.example.cinema.dto.content`
 
 | Class | Description | Usage |
 | :--- | :--- | :--- |
-| `ContentSearchRequest` | 콘텐츠 검색 조건 (QueryParam 바인딩용) | `GET /contents/search` |
-| `ContentSearchResponse` | 콘텐츠 목록/검색 결과 요약 | `GET /contents/search`, `GET /users/{nick}/contents` |
-| `ReviewCreateRequest` | 리뷰 생성/수정 요청 | `POST/PUT /contents/reviews` |
-| `ReviewListResponse` | 리뷰 목록 조회 | `GET /contents/reviews/search/{content-id}` |
+| `ContentRequest` | 콘텐츠 생성 요청 (1차) | `POST /contents` |
+| `ContentAssetAttachRequest` | 에셋 추가 요청 (2차) | `PATCH /contents/{id}` |
+| `ContentUpdateRequest` | 콘텐츠 수정 요청 | `PUT /contents/{id}` |
+| `ContentResponse` | 콘텐츠 단건 조회 응답 | `POST /contents` |
+| `ContentEditResponse` | 수정 폼 데이터 응답 | `GET /contents/{id}/edit`, `PUT /contents/{id}` |
+| `ContentSearchRequest` | 콘텐츠 검색 조건 | `GET /contents` |
+| `ContentSearchResponse` | 콘텐츠 검색 결과 요약 | `GET /contents` |
+| `ReviewCreateRequest` | 리뷰 생성/수정 (Planned) | - |
+| `ReviewListResponse` | 리뷰 목록 (Planned) | - |
 
-## 4. Subscription & Payment
+## 5. Subscription & Payment
 **Package:** `com.example.cinema.dto.subscription`
 
 | Class | Description | Usage |
 | :--- | :--- | :--- |
-| `SubscriptionCreateRequest` | 구독 생성 요청 (결제 정보 포함) | `POST /users/subscriptions` |
-| `SubscriptionResponse` | **현재 구독 상세 상태 조회** | `GET /users/subscription` |
-| `PaymentHistoryResponse` | 과거 구독 결제 내역 조회 | `GET /users/subscriptions` |
+| `SubscriptionCreateRequest` | 구독 생성 요청 | `POST /users/subscriptions` |
+| `FirstSubscriptionResponse` | 구독 생성 결과 | `POST /users/subscriptions` |
+| `SubscriptionResponse` | 구독 정보 조회/변경 응답 | `GET /users/subscriptions`, `PUT /users/subscriptions` |
+| `PaymentHistoryResponse` | 결제 내역 | `GET /users/subscriptions/payment-history` |
 | `SubscriptionUpdateBillingRequest` | 결제 수단 변경 요청 | `PUT /users/subscriptions` |
-
-## 5. Settlement
-**Package:** `com.example.cinema.dto.settlement`
-
-| Class | Description | Usage |
-| :--- | :--- | :--- |
-| `SettlementAccountRequest` | 정산 계좌 등록/수정 요청 | `POST/PUT /settlements/accounts` |
-| `SettlementListResponse` | 정산 내역 목록 조회 | `GET /settlements` |
 
 ## 6. Schedule
 **Package:** `com.example.cinema.dto.schedule`
 
 | Class | Description | Usage |
 | :--- | :--- | :--- |
-| `ScheduleCreateRequest` | 상영 일정 생성 요청 | `POST /schedules/{date}` |
-| `ScheduleUpdateRequest` | 상영 일정 수정 요청 | `PUT /schedules/{id}` |
+| `ScheduleCreateRequest` | 상영 일정 생성 요청 | `POST /schedules` |
+| `ScheduleCreateResponse` | 상영 일정 생성 응답 | `POST /schedules` |
+| `ScheduleEditRequest` | 상영 일정 수정 요청 | `PUT /schedules/{id}` |
+| `ScheduleItemResponse` | 상영 일정 단건 응답 | `PUT /schedules/{id}` |
+| `ScheduleLockRequest` | 편성 확정 요청 | `PUT /schedules/{id}/confirm` |
+| `ScheduleLockResponse` | 편성 확정 응답 | `PUT /schedules/{id}/confirm` |
 
 ## 7. Theater
 **Package:** `com.example.cinema.dto.theater`
 
 | Class | Description | Usage |
 | :--- | :--- | :--- |
-| `TheaterEnterResponse` | 영화관 입장 응답 (토큰/상태 등) | `POST /theaters/{id}/enter` |
-| `TheaterLogResponse` | 상영/시청 기록 (WatchHistory) | `POST /theaters/{id}/exit`, `GET /theaters/logs` |
+| `TheaterEnterResponse` | 입장 응답 | `POST /theaters/{id}/enter` |
+| `TheaterLeaveResponse` | 퇴장 응답 | `POST /theaters/{id}/leave` |
+| `PlaybackInfoResponse` | 재생 정보 (URL 등) | `GET /theaters/{id}/playback` |
+| `PlaybackStateResponse` | 재생 상태 (Sync) | `GET /theaters/{id}/state` |
 
-## 8. Infrastructure (Internal)
-**Package:** `com.example.cinema.infrastructure.payment.toss.dto`
+## 8. Asset
+**Package:** `com.example.cinema.api.AssetUploadController` (Inner Records)
 
-| Class | Description | Note |
+| Class | Description | Usage |
 | :--- | :--- | :--- |
-| `TossBillingResponse` | 토스 빌링키 발급 응답 | Internal Only |
-| `TossPaymentResponse` | 토스 결제 승인 응답 | Internal Only |
+| `PresignReq` | S3 Presigned URL 요청 | `POST /api/assets/presign` |
+| `PresignRes` | S3 Presigned URL 응답 | `POST /api/assets/presign` |
+| `CompleteReq` | 업로드 완료 처리 요청 | `POST /api/assets/complete` |
+| `CompleteRes` | 완료/인코딩 시작 응답 | `POST /api/assets/complete` |
+
+## 9. Settlement (Planned)
+**Package:** `com.example.cinema.dto.settlement`
+
+| Class | Description | Usage |
+| :--- | :--- | :--- |
+| `SettlementAccountRequest` | 정산 계좌 요청 | `POST/PUT /settlements/accounts` |
+| `SettlementListResponse` | 정산 내역 응답 | `GET /settlements` |
