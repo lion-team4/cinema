@@ -71,7 +71,7 @@ public class ScheduleService {
                 .content(content)
                 .startAt(request.getStartAt())
                 .endAt(request.getEndAt())
-                .status(ScheduleStatus.COMING_UP)
+                .status(ScheduleStatus.CLOSED)
                 .build());
 
         return new ScheduleCreateResponse(scheduleItem.getScheduleItemId());

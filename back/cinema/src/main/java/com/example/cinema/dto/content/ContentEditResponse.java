@@ -8,6 +8,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class ContentEditResponse {
+    private Long contentId;
     private String title;
     private String description;
 
@@ -19,6 +20,7 @@ public class ContentEditResponse {
 
     public static ContentEditResponse from(Content c) {
         return ContentEditResponse.builder()
+                .contentId(c.getContentId())
                 .title(c.getTitle())
                 .description(c.getDescription())
                 .posterAssetId(c.getPoster() == null ? null : c.getPoster().getAssetId())

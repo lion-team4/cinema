@@ -9,28 +9,31 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 시청 기록 로그 응답 DTO
- * <p>
- * 용도:
- * - 사용자의 시청 내역 조회 (GET /theaters/logs)
+ * 상영관 퇴장 결과 응답 DTO
  */
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TheaterLogResponse {
+public class TheaterLeaveResponse {
 
     private Long watchId;
 
+    private Long scheduleItemId;
+
     private String contentTitle;
 
-    private LocalDateTime viewedAt;
+    private LocalDateTime enteredAt;
 
-    public static TheaterLogResponse from(WatchHistory history) {
-        return TheaterLogResponse.builder()
+    private LocalDateTime leftAt;
+
+    public static TheaterLeaveResponse from(WatchHistory history) {
+        return TheaterLeaveResponse.builder()
                 .watchId(history.getWatchId())
+                .scheduleItemId(history.getScheduleItem().getScheduleItemId())
                 .contentTitle(history.getScheduleItem().getContent().getTitle())
-                .viewedAt(history.getCreatedAt())
+                .enteredAt(history.getCreatedAt())
+                .leftAt(history.getLeftAt())
                 .build();
     }
 }
