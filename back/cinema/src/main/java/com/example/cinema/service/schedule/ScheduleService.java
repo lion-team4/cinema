@@ -1,5 +1,6 @@
 package com.example.cinema.service.schedule;
 
+import com.example.cinema.dto.common.PageResponse;
 import com.example.cinema.dto.schedule.*;
 import com.example.cinema.entity.Content;
 import com.example.cinema.entity.ScheduleDay;
@@ -14,6 +15,7 @@ import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.type.ContentStatus;
 import com.example.cinema.type.ScheduleStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,14 @@ public class ScheduleService {
     private final ScheduleItemRepository scheduleItemRepository;
     private final ContentRepository contentRepository;
     private final UserRepository userRepository;
+
+    /**
+     * 상영 일정을 검색합니다.
+     */
+    public PageResponse<ScheduleSearchResponse> searchSchedules(ScheduleSearchRequest request) {
+        Page<ScheduleItem> page = scheduleItemRepository.search(request);
+        return PageResponse.from(page.map(ScheduleSearchResponse::from));
+    }
 
     /**
      * 특정 날짜의 전체 상영 일정을 조회합니다.
