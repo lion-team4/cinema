@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: cinema
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/cinema-db
+    username: root
+    password: 1111
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+
+toss:
+  client-key: ""
+  secret-key: ""
+  url: "https://api.tosspayments.com/v1"
+
+jwt:
+  secret: "VGhpc0lzQVZlcnlMb25nU2VjcmV0S2V5Rm9yVGhlQ2luZW1hQXBwbGljYXRpb25UaGF0SXNEZWZpbml0ZWx5TW9yZVRoYW41MTJCaXRzQW5kU2hvdWxkQmVTZWN1cmVFbm91Z2hGb3JIUzUxMkFsZ29yaXRobUNoZWNr"
+
+aws:
+  region: ap-northeast-2
+  s3:
+    bucket: lion-cinema-content-team4
+  cloudfront:
+    domain: d3q8b3ts21eo3m.cloudfront.net
+
+ffmpeg:
+  docker_image: jrottenberg/ffmpeg:6.1-alpine
+  work_dir: /tmp/cinema-work
+  hls_segment_seconds: 6
+
+upload:
+  verify:
+    video_min_bytes: 1
+    image_min_bytes: 1
