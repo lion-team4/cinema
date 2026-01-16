@@ -80,13 +80,6 @@ public class ProjectSecurityConfig {
                                 "/schedules/**"
                         ).permitAll()
 
-                        // 테스트 페이지
-                        .requestMatchers(
-                                "/subscription-test",
-                                "/subscription-test.html",
-                                "/test/**",
-                                "/api/test/**"
-                        ).permitAll()
 
                         /* ==================================================
                          * PROTECTED (인증 필요)
@@ -126,6 +119,11 @@ public class ProjectSecurityConfig {
                                 "/users/subscriptions",
                                 "/users/subscriptions/**"
                         ).authenticated()
+
+
+                        .requestMatchers(
+                                "/admin/platform-revenue/**"
+                        ).permitAll()
 
                         // 정산
                         .requestMatchers(

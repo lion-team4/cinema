@@ -65,6 +65,7 @@ public class Content extends BaseEntity {
     public void resetMonthView() {
         this.monthView = 0L;
     }
+
     /**
      * 조회수 증가 (totalView와 monthView 모두 증가)
      */
@@ -79,6 +80,8 @@ public class Content extends BaseEntity {
         this.title = title;
         this.description = description;
         this.status = (status==null) ? ContentStatus.DRAFT : status;
+        this.totalView = 0L; // 추가
+        this.monthView = 0L; // 추가
     }
 
     public void updateInfo(String title, String description, ContentStatus status) {

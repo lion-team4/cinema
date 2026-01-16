@@ -22,14 +22,14 @@
 </head>
 <body>
     <h1>🎉 구독 신청이 완료되었습니다!</h1>
-    
+
     <!-- 1. 초기 결제 결과 -->
     <div>
         <h3>💳 초기 결제 결과</h3>
         <ul>
             <li><strong>상품명:</strong> <span th:text="${payment.planName}"></span></li>
             <li><strong>결제 금액:</strong> <span th:text="${#numbers.formatInteger(payment.amount, 0, 'COMMA')}"></span>원</li>
-            <li><strong>결제 상태:</strong> 
+            <li><strong>결제 상태:</strong>
                 <span th:text="${payment.status}" class="status-badge" th:classappend="${'status-' + payment.status}"></span>
             </li>
             <li><strong>결제 일시:</strong> <span th:text="${#temporals.format(payment.paidAt, 'yyyy-MM-dd HH:mm:ss')}"></span></li>
@@ -42,7 +42,7 @@
         <ul>
             <li><strong>구독자:</strong> <span th:text="${subscriptionResponse.subscriberNickname}"></span></li>
             <li><strong>구독 상품:</strong> <span th:text="${subscriptionResponse.planName}"></span></li>
-            <li><strong>구독 상태:</strong> 
+            <li><strong>구독 상태:</strong>
                 <span th:text="${subscriptionResponse.status}" class="status-badge" th:classappend="${'status-' + subscriptionResponse.status}"></span>
             </li>
             <li><strong>다음 결제일:</strong> <span th:text="${#temporals.format(subscriptionResponse.nextPaymentDate, 'yyyy-MM-dd HH:mm')}"></span></li>
@@ -57,15 +57,17 @@
             <li><strong>카드 번호:</strong> <span th:text="${billingResponse.cardNumber}"></span></li>
             <li><strong>카드 타입:</strong> <span th:text="${billingResponse.cardType}"></span></li>
             <li><strong>Billing Key:</strong> <span th:text="${billingResponse.billingKey}"></span></li>
+            <li><strong>Customer Key:</strong> <span th:text="${billingResponse.customerKey}"></span></li>
+            <li><strong>Card Info:</strong> <span th:text="${billingResponse.card.number}"></span> (<span th:text="${billingResponse.card.cardType}"></span>)</li>
         </ul>
     </div>
 
     <hr/>
-    
+
     <div class="btn-group">
         <a th:href="@{/test/pay(nickname=${nickname})}" class="btn btn-primary">단건 결제 테스트</a>
         <a th:href="@{/test/history(nickname=${nickname})}" class="btn btn-success">결제 내역 보기</a>
-        
+
         <form th:action="@{/test/billing/delete}" method="post" style="display: inline;">
             <input type="hidden" name="nickname" th:value="${nickname}"/>
             <button type="submit" class="btn btn-danger" onclick="return confirm('정말 구독을 해지하고 빌링키를 삭제하시겠습니까?')">구독 해지</button>
