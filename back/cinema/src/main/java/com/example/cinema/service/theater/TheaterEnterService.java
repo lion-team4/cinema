@@ -5,6 +5,7 @@ import com.example.cinema.dto.theater.TheaterLeaveResponse;
 import com.example.cinema.entity.ScheduleItem;
 import com.example.cinema.entity.User;
 import com.example.cinema.entity.WatchHistory;
+import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.schedule.ScheduleItemRepository;
 import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.repository.watchHistory.WatchHistoryRepository;
@@ -42,9 +43,15 @@ public class TheaterEnterService {
 
         // 이미 입장한 경우 (퇴장하지 않은 기록이 있으면)
         if (watchHistoryRepository.existsByUserAndScheduleItemAndLeftAtIsNull(user, scheduleItem)) {
-            throw new IllegalStateException("이미 입장한 상영관입니다.");
-        }
 
+            var history= watchHistoryRepository.findByUserAndScheduleItem(user,scheduleItem)
+                    .orElseThrow(()-> new IllegalArgumentException("해당하는 유저가 없습니다."));
+
+            history.reEnter();
+            history.enter();
+
+            return TheaterEnterResponse.from(history);
+        }
         // 시청 기록 생성
         WatchHistory history = watchHistoryRepository.save(WatchHistory.create(user, scheduleItem));
 
@@ -66,6 +73,10 @@ public class TheaterEnterService {
 
         // 퇴장 처리
         history.leave();
+        if (!history.getViewCounted() && history.isDiffMoreThanTenMinutes()){
+            scheduleItem.getContent().incrementView();
+            history.setViewCounted(true);
+        }
 
         return TheaterLeaveResponse.from(history);
     }

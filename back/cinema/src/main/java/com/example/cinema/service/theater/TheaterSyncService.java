@@ -6,20 +6,20 @@ import com.example.cinema.repository.schedule.ScheduleItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Clock;
-
 @Service
 @RequiredArgsConstructor
 public class TheaterSyncService {
 
     private final ScheduleItemRepository scheduleItemRepository;
-    private final Clock clock = Clock.systemUTC();
 
     public PlaybackStateResponse getState(long scheduleId) {
-        long serverTimeMs = clock.millis();
+        // 한국 시간 기준으로 통일
+        long serverTimeMs = System.currentTimeMillis();
 
         ScheduleItem item = scheduleItemRepository.findById(scheduleId).orElse(null);
 
         return PlaybackStateResponse.from(item, serverTimeMs);
     }
+
+
 }

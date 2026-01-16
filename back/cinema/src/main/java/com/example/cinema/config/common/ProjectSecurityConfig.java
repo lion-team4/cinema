@@ -84,7 +84,8 @@ public class ProjectSecurityConfig {
                                 "/subscription-test",
                                 "/subscription-test.html",
                                 "/test/**",
-                                "/api/test/**"
+                                "/api/test/**",
+                                "/ws-sockjs/**"
                         ).permitAll()
 
                         /* ==================================================
