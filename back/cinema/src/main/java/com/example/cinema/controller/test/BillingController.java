@@ -27,7 +27,7 @@ import java.util.Map;
 @Controller
 @RequestMapping("/test")
 @RequiredArgsConstructor
-@Profile("dev")
+@Profile("test")
 public class BillingController {
 
     private final SubscriptionService subscriptionService;
@@ -46,7 +46,7 @@ public class BillingController {
             userRepository.save(User.builder()
                     .email(nickname + "@test.com")
                     .nickname(nickname)
-                    .passwordHash(passwordEncoder.encode("1234"))
+                    .passwordHash("{noop}password1234")
                     .build());
         }
         return "redirect:/test/billing?nickname=" + nickname;

@@ -38,3 +38,5 @@ out/
 
 # Test profile config
 application-test.yml
+.md
+.sql

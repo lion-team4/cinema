@@ -3,6 +3,7 @@ package com.example.cinema.infrastructure.payment.toss.dto;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * 토스 빌링키 발급 API 응답 DTO
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
  * 참고: https://docs.tosspayments.com/reference#%EB%B9%8C%EB%A7%81%ED%82%A4-%EB%B0%9C%EA%B8%89
  */
 @Getter
+@Setter
 @NoArgsConstructor
 public class TossBillingResponse {
     private String mId; //상점

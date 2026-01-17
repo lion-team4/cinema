@@ -37,6 +37,18 @@ public interface WatchHistoryRepository extends JpaRepository<WatchHistory, Long
      */
     long countByScheduleItemAndLeftAtIsNull(ScheduleItem scheduleItem);
 
+    /**
+     * 리뷰 작성 가능한 시청 기록 조회 (viewCounted=true, 아직 리뷰 작성 안 함)
+     */
+    @Query("SELECT wh FROM WatchHistory wh " +
+            "LEFT JOIN Review r ON r.watchHistory = wh " +
+            "WHERE wh.user = :user " +
+            "AND wh.scheduleItem.content = :content " +
+            "AND wh.viewCounted = true " +
+            "AND r.reviewId IS NULL " +
+            "ORDER BY wh.createdAt ASC")
+    List<WatchHistory> findUsableWatchHistories(@Param("user") User user, @Param("content") Content content, Pageable pageable);
+
     boolean existsFindByUserAndScheduleItem(User user, ScheduleItem scheduleItem);
 
 }
