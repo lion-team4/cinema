@@ -1,14 +1,14 @@
 package com.example.cinema.controller.schedule;
 
+import com.example.cinema.config.common.CustomUserDetails;
 import com.example.cinema.dto.common.ApiResponse;
 import com.example.cinema.dto.common.PageResponse;
 import com.example.cinema.dto.schedule.*;
 import com.example.cinema.service.schedule.ScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
 
 @RestController
 @RequestMapping("/schedules")
@@ -33,8 +33,8 @@ public class ScheduleController {
     @PostMapping
     public ResponseEntity<ApiResponse<ScheduleCreateResponse>> createSchedule(
             @RequestBody ScheduleCreateRequest request,
-            Principal principal) {
-        ScheduleCreateResponse response = scheduleService.createSchedule(request, principal.getName());
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        ScheduleCreateResponse response = scheduleService.createSchedule(request, userDetails.getUser());
         return ResponseEntity.ok(ApiResponse.success("상영 일정이 성공적으로 생성되었습니다.", response));
     }
 
@@ -45,8 +45,8 @@ public class ScheduleController {
     public ResponseEntity<ApiResponse<ScheduleItemResponse>> editSchedule(
             @PathVariable Long scheduleItemId,
             @RequestBody ScheduleEditRequest request,
-            Principal principal) {
-        ScheduleItemResponse response = scheduleService.editSchedule(scheduleItemId, request, principal.getName());
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        ScheduleItemResponse response = scheduleService.editSchedule(scheduleItemId, request, userDetails.getUser());
         return ResponseEntity.ok(ApiResponse.success("상영 일정이 성공적으로 수정되었습니다.", response));
     }
 
@@ -57,8 +57,8 @@ public class ScheduleController {
     public ResponseEntity<ApiResponse<ScheduleLockResponse>> lockSchedule(
             @PathVariable Long scheduleDayId,
             @RequestBody ScheduleLockRequest request,
-            Principal principal) {
-        ScheduleLockResponse response = scheduleService.lockSchedule(scheduleDayId, request.getIsLock(), principal.getName());
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        ScheduleLockResponse response = scheduleService.lockSchedule(scheduleDayId, request.getIsLock(), userDetails.getUser());
         String message = response.getIsLocked() ? "편성이 확정되었습니다." : "편성 확정이 취소되었습니다.";
         return ResponseEntity.ok(ApiResponse.success(message, response));
     }
@@ -69,8 +69,8 @@ public class ScheduleController {
     @DeleteMapping("/{scheduleItemId}")
     public ResponseEntity<ApiResponse<Void>> deleteSchedule(
             @PathVariable Long scheduleItemId,
-            Principal principal) {
-        scheduleService.deleteSchedule(scheduleItemId, principal.getName());
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        scheduleService.deleteSchedule(scheduleItemId, userDetails.getUser());
         return ResponseEntity.ok(ApiResponse.success("상영 일정이 성공적으로 삭제되었습니다."));
     }
 }
