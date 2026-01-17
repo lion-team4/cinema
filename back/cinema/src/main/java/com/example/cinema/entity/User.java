@@ -68,4 +68,9 @@ public class User extends BaseEntity {
     public void demoteFromSeller() {
         this.seller = false;
     }
+
+    // 구독 등록
+    public void registerSubscription(Subscription subscription) {
+        this.subscription = subscription;
+    }
 }
