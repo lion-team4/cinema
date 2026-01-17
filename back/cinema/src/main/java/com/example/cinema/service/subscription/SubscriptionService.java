@@ -70,6 +70,9 @@ public class SubscriptionService {
             // 엔티티의 reActivate 메서드 호출
             subscription.reActivate(billingKey);
 
+            // 이미 존재했던 구독이라도 유저 객체에 다시 연결
+            user.registerSubscription(subscription);
+
             // 3. 다시 첫 결제 시도
             return processInitialPayment(subscription);
         }
@@ -97,6 +100,9 @@ public class SubscriptionService {
                 subscriptionRepository.save(
                         Subscription.create(user,billingKey)
                 );
+
+        // 신규 생성된 구독을 유저 객체에 연결
+        user.registerSubscription(subscription);
 
         // 7. 초기 결제 처리
         return processInitialPayment(subscription);
