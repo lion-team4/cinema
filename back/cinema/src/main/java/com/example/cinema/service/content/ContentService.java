@@ -83,18 +83,18 @@ public class ContentService {
             throw new BusinessException("상영신청이 완료된 컨텐츠는 수정할 수 없습니다.", ErrorCode.INVALID_INPUT_VALUE);
 
 //        updateRequest -> mediaAssets 추출 후 조회
-        MediaAsset poster = getAssetOrThrow(
-                updateRequest.getPosterAssetId(), POSTER_IMAGE, "등록되지 않은 포스터입니다.");
-
-        MediaAsset videoSourceAsset = getAssetOrThrow(
-                updateRequest.getVideoSourceAssetId(), VIDEO_SOURCE, "등록되지 않은 비디오입니다.");
-
-        MediaAsset videoHlsMasterAssetId = getAssetOrThrow(
-                updateRequest.getVideoHlsMasterAssetId(),VIDEO_HLS_MASTER,"등록되지 않은 비디오입니다.");
+//        MediaAsset poster = getAssetOrThrow(
+//                updateRequest.getPosterAssetId(), POSTER_IMAGE, "등록되지 않은 포스터입니다.");
+//
+//        MediaAsset videoSourceAsset = getAssetOrThrow(
+//                updateRequest.getVideoSourceAssetId(), VIDEO_SOURCE, "등록되지 않은 비디오입니다.");
+//
+//        MediaAsset videoHlsMasterAssetId = getAssetOrThrow(
+//                updateRequest.getVideoHlsMasterAssetId(),VIDEO_HLS_MASTER,"등록되지 않은 비디오입니다.");
 
        //기본 정보 수정 및 애셋 수정
         content.updateInfo(updateRequest.getTitle(), updateRequest.getDescription(), updateRequest.getStatus());
-        content.attachAssets(poster, videoSourceAsset, videoHlsMasterAssetId);
+//        content.attachAssets(poster, videoSourceAsset, videoHlsMasterAssetId);
 
 
         return ContentEditResponse.from(content);
