@@ -133,6 +133,11 @@ public class ProjectSecurityConfig {
                                 "/settlements/**"
                         ).authenticated()
 
+                        // 플렛폼 수입 조회
+                        .requestMatchers(
+                                "/admin/platform-revenue/**"
+                        ).permitAll()
+
                         // 상영 스케줄 / 상영관
                         .requestMatchers(
                                 "/schedules/**",
