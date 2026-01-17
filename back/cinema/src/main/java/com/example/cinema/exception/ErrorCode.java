@@ -31,7 +31,11 @@ public enum ErrorCode {
     CONTENT_NOT_FOUND(HttpStatus.NOT_FOUND, "CT001", "콘텐츠를 찾을 수 없습니다."),
     THEATER_NOT_FOUND(HttpStatus.NOT_FOUND, "SC001", "상영관을 찾을 수 없습니다."),
     SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "SC002", "상영 일정을 찾을 수 없습니다."),
-    SCHEDULE_CONFLICT(HttpStatus.CONFLICT, "SC003", "상영 일정이 겹칩니다.");
+    SCHEDULE_CONFLICT(HttpStatus.CONFLICT, "SC003", "상영 일정이 겹칩니다."),
+
+    // Review
+    REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "리뷰를 찾을 수 없습니다."),
+    REVIEW_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "R002", "리뷰를 작성할 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;

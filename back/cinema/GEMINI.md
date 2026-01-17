@@ -1,67 +1,101 @@
-# Project Context: Cinema Streaming Backend
+# GEMINI.md - Lion Cinema Project Context
 
-## Project Overview
-This is a **Spring Boot-based backend application** for a **Cinema Streaming Service**. The platform allows users to subscribe, watch movie contents, and participate in synchronized "Theater" viewings where multiple users watch the same content simultaneously.
+## 1. Project Overview
+**Name**: Lion Cinema (Back-End)
+**Type**: Synchronous Movie Streaming Platform (Subscription-based)
+**Core Concept**: Users watch content simultaneously based on a pre-defined schedule ("Theater" experience).
+**Key Features**:
+- **Sync Playback**: WebSocket-based state synchronization for all viewers.
+- **Media Pipeline**: Upload -> FFmpeg Transcoding (HLS) -> S3 -> CloudFront.
+- **Subscription**: Recurring payments via Toss Payments (Billing Key).
+- **Settlement**: Creator revenue distribution based on views.
+- **Review System**: Verifiable reviews based on actual watch history.
 
-It handles **Content Management** (Video upload/processing), **Streaming** (HLS via AWS S3 & CloudFront), **Subscriptions/Payments** (Toss Payments), **Scheduling** (Movie time slots), and **Real-time Synchronization** (WebSocket/STOMP) for theater experiences.
+## 2. Tech Stack
+- **Language**: Java 21
+- **Framework**: Spring Boot 3.5.9
+- **Build Tool**: Gradle
+- **Database**: MySQL (Prod), H2 (Test)
+- **ORM**: JPA (Hibernate) + QueryDSL 5.0
+- **Security**: Spring Security + JWT
+- **Async/Batch**: Spring Batch (Settlements), `@Async` (Encoding)
+- **Infrastructure**:
+  - **AWS**: S3 (Storage), CloudFront (CDN)
+  - **Payment**: Toss Payments (Billing API)
+  - **WebSocket**: STOMP (Theater sync)
+  - **Transcoding**: FFmpeg (Dockerized or local execution)
 
-## Key Technologies
-- **Language:** Java 21
-- **Framework:** Spring Boot 3.5.9
-- **Build Tool:** Gradle
-- **Database:** MySQL
-- **ORM:** Spring Data JPA, QueryDSL 5.0
-- **Security:** Spring Security, JWT
-- **Cloud/Infra:** AWS S3 (Storage), AWS CloudFront (CDN), Docker (FFmpeg execution)
-- **Payments:** Toss Payments API
-- **Documentation:** Swagger/OpenAPI (SpringDoc)
+## 3. Architecture & Package Structure (`com.example.cinema`)
 
-## Architecture & Core Modules
+### Core Packages
+- **`api`**: REST Controllers. Grouped by domain (`auth`, `content`, `schedule`, `subscription`, `theater`, `settlement`).
+- **`entity`**: JPA Entities. The source of truth.
+  - Key Entities: `User`, `Content`, `ScheduleItem`, `Subscription`, `Payment`, `Settlement`, `Review`.
+- **`dto`**: Data Transfer Objects (Request/Response). Strictly separated from Entities.
+- **`service`**: Business logic.
+  - `asset`: S3 key generation, Presigned URLs.
+  - `media`: CloudFront URL generation.
+  - `encoding`: FFmpeg transcoding orchestration.
+  - `theater`: Playback sync (`TheaterSyncService`) and access control (`TheaterPlaybackService`).
+  - `settlement`: Revenue calculation and Batch processing.
+  - `content`: Content management and Reviews (`ReviewService`).
+- **`repository`**: Data access (JPA + QueryDSL).
+- **`infra`**: Infrastructure adapters.
+  - `s3`: AWS SDK implementation.
+  - `ffmpeg`: Transcoding logic.
+  - `payment`: Toss Payments client (`RestClient`).
+- **`config`**: App configuration (`Security`, `WebSocket`, `Batch`, `S3`, `Toss`).
 
-### 1. Streaming Architecture
-- **Upload:** Direct S3 upload via Presigned URLs.
-- **Processing:** Asynchronous background jobs using Dockerized FFmpeg to transcode videos into HLS format (`.m3u8` + `.ts` segments).
-- **Delivery:** Content served via AWS CloudFront CDN.
-- **Playback:** HLS streaming for adaptive bitrate.
+### Key Workflows
 
-### 2. Theater (Synchronized Viewing)
-- **Concept:** Users enter a virtual "Theater" for a specific `Schedule`.
-- **Sync:** Server-controlled playback. No user pause/seek.
-- **Technology:** WebSocket (STOMP) pushes `PlaybackState` (playing status, current position) calculated based on the schedule's `startAt` time.
+#### A. Content Upload & Encoding
+1. **Metadata**: `POST /contents` (Create draft).
+2. **Upload**: `POST /api/assets/presign` -> Client uploads raw MP4 to S3.
+3. **Completion**: `POST /api/assets/complete` -> Triggers `EncodingJobService`.
+4. **Transcoding**: `HlsTranscodeService` downloads MP4 -> FFmpeg (HLS) -> Uploads `.m3u8` & `.ts` to S3.
+5. **Publishing**: Content becomes available for scheduling.
 
-### 3. Payment & Subscription
-- **Provider:** Toss Payments.
-- **Model:** Monthly subscription.
-- **Flow:** Card registration (Billing Key) -> Recurring payment execution.
-- **Settlement:** Monthly settlement calculation based on effective view counts.
+#### B. Theater Synchronization
+1. **Schedule**: Admins create `ScheduleItem` (Start/End time).
+2. **Entry**: Client calls `GET /theaters/{scheduleId}/playback` (Validation + CloudFront URL).
+3. **Sync**: Client connects to WebSocket (`/ws`) and subscribes to `/topic/theaters/{id}/state`.
+4. **Logic**: `TheaterSyncService` calculates `currentPosition = now - startAt`.
+   - **No Seek**: Users cannot control playback; they only receive the calculated position.
 
-## Key Directories & Files
-- `src/main/java/com/example/cinema/`
-    - `api/`: Controllers for specific asset handling.
-    - `config/`: Configuration classes (Security, AWS, QueryDSL, Scheduler).
-    - `controller/`: REST Controllers organized by domain (`auth`, `content`, `schedule`, `theater`, `subscription`).
-    - `dto/`: Data Transfer Objects (Request/Response).
-    - `entity/`: JPA Entities (`User`, `Content`, `ScheduleItem`, `Subscription`, `Payment`, `Settlement`).
-    - `exception/`: Global exception handling (`BusinessException`, `GlobalExceptionHandler`).
-    - `infra/`: Infrastructure layers (S3, FFmpeg, Payment clients).
-    - `repository/`: JPA Repositories.
-    - `service/`: Business logic.
-    - `scheduler/`: Scheduled tasks (View count aggregation, Subscription renewal).
+#### C. Payment (Toss)
+1. **Card Reg**: `TossPaymentClient` issues a **Billing Key** (Auth Key -> Billing Key).
+2. **Subscription**: `SubscriptionService` creates record and triggers initial payment.
+3. **Recurring**: `Batch` jobs or scheduled tasks trigger subsequent payments using Billing Key.
 
-## Building & Running
-- **Build:** `./gradlew build`
-- **Run:** `./gradlew bootRun`
-- **Test:** `./gradlew test`
+#### D. Review System
+1. **Validation**: Checks `WatchHistory` to ensure user actually watched the content (`viewCounted=true`).
+2. **Constraint**: One review per watch history entry.
+3. **Crud**: Standard Create/Update/Delete with ownership checks.
 
-## Development Conventions
-- **Response Format:** All API responses are wrapped in `ApiResponse<T>`.
-- **Exception Handling:** Use `BusinessException` with `ErrorCode` enum for logic errors.
-- **Entity/DTO:** Strict separation between Entity and DTOs.
-- **Service Layer:** Transactional business logic.
-- **Configuration:** `application.yaml` manages environment-specific settings (Profiles: `test`, `dev`, `prod`).
+## 4. Development Conventions
+- **DTOs**: Always use DTOs for Controller I/O. Never expose Entities directly.
+- **Exceptions**: Throw `BusinessException` with `ErrorCode` for logic errors.
+- **Testing**:
+  - `BillingTestService`/`BillingController` available for payment flows.
+  - H2 Database used for testing.
+- **Logging**: Slf4j (Lombok).
 
-## Important Documentation Files
-- `API.md`: Detailed REST API endpoints.
-- `FRS.md`: Functional Requirements Specification.
-- `STREAMING_AND_S3_ARCHITECTURE.md`: Deep dive into the streaming setup.
-- `TOSS_PAYMENT_PLAN.md`: Payment integration details.
+## 5. Current State
+- **Implemented**:
+  - **Core**: Basic Auth, Content CRUD, S3 Integration, HLS Encoding Pipeline.
+  - **Streaming**: Theater Sync (WebSocket), CloudFront integration.
+  - **Payment**: Toss Payment Integration (Billing Key, Recurring).
+  - **Social**: Review System (WatchHistory integration).
+  - **Search**: Advanced Schedule Search (QueryDSL, Date/Owner filtering).
+  - **Settlement**: Spring Batch jobs (Revenue calc, Monthly reset, Fault tolerance).
+- **Pending/In Progress**:
+  - Security hardening (CloudFront Signed URLs - noted in docs).
+  - Client-side precision sync (latency compensation).
+
+## 6. Important Files
+- `API.md`: Detailed REST API spec.
+- `ENTITY.md`: Database schema documentation.
+- `STREAMING_AND_S3_ARCHITECTURE.md`: Deep dive into the video pipeline.
+- `TOSS_PAYMENT_PLAN.md`: Payment implementation details.
+- `REVIEW_IMPLEMENTATION_PLAN.md`: Review feature plan.
+- `SCHEDULE_SEARCH_IMPLEMENTATION_PLAN.md`: Search logic plan.
