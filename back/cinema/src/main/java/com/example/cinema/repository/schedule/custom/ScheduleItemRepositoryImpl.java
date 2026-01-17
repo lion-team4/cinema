@@ -20,7 +20,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
-@Repository
 @RequiredArgsConstructor
 public class ScheduleItemRepositoryImpl implements ScheduleItemRepositoryCustom {
 

@@ -35,13 +35,12 @@ public class ScheduleService {
     private final ScheduleDayRepository scheduleDayRepository;
     private final ScheduleItemRepository scheduleItemRepository;
     private final ContentRepository contentRepository;
-    private final ScheduleItemRepositoryCustom scheduleItemRepositoryCustom;
 
     /**
      * 상영 일정을 검색합니다.
      */
     public PageResponse<ScheduleSearchResponse> searchSchedules(ScheduleSearchRequest request) {
-        Page<ScheduleItem> page = scheduleItemRepositoryCustom.search(request);
+        Page<ScheduleItem> page = scheduleItemRepository.search(request);
         return PageResponse.from(page.map(ScheduleSearchResponse::from));
     }
 

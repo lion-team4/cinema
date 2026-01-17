@@ -1,6 +1,7 @@
 package com.example.cinema.repository.schedule;
 
 import com.example.cinema.entity.ScheduleItem;
+import com.example.cinema.repository.schedule.custom.ScheduleItemRepositoryCustom;
 import com.example.cinema.type.ScheduleStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, Long> {
+public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, Long> , ScheduleItemRepositoryCustom {
 
     /**
      * 특정 창작자(Owner)의 다른 상영 일정과 시간이 겹치는지 확인합니다.
