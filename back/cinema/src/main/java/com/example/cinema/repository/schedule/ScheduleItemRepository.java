@@ -23,16 +23,17 @@ public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, Long
      * @param excludeId 수정 시 자기 자신을 제외하기 위한 ID (생성 시 null)
      * @return 겹치는 일정이 존재하면 true
      */
-    @Query("update ScheduleItem s\n" +
-            "       set s.status = com.example.cinema.type.ScheduleStatus.WAITING\n" +
-            "     where s.status = com.example.cinema.type.ScheduleStatus.CLOSED\n" +
-            "       and s.startAt > :now\n" +
-            "       and s.startAt <= :nowPlus10")
+    @Query("""
+    SELECT COUNT(s) > 0 
+    FROM ScheduleItem s 
+    WHERE s.content.owner.userId = :ownerId 
+      AND (:excludeId IS NULL OR s.scheduleItemId <> :excludeId)
+      AND (s.startAt < :endAt AND s.endAt > :startAt)
+""")
     boolean existsOverlapByOwner(@Param("ownerId") Long ownerId,
                                  @Param("startAt") LocalDateTime startAt,
                                  @Param("endAt") LocalDateTime endAt,
                                  @Param("excludeId") Long excludeId);
-
     java.util.List<ScheduleItem> findAllByScheduleDay_ScheduleDayId(Long scheduleDayId);
 
     // 오픈: CLOSED -> WAITING (startAt-10분 구간)
