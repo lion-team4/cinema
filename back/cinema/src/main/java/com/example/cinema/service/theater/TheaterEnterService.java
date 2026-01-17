@@ -43,6 +43,16 @@ public class TheaterEnterService {
         // 스케줄 상태 검증 (WAITING 또는 PLAYING만 입장 가능)
         validateScheduleStatus(scheduleItem);
 
+        //퇴장기록이 있는 경우
+        if(watchHistoryRepository.existsFindByUserAndScheduleItem(user, scheduleItem)){
+            WatchHistory history = watchHistoryRepository.findByUserAndScheduleItem(user, scheduleItem)
+                    .orElseThrow(() -> new IllegalArgumentException("해당하는 유저가 없습니다"));
+            history.reEnter();
+            history.enter();
+
+            return TheaterEnterResponse.from(history);
+        }
+
         // 이미 입장한 경우 (퇴장하지 않은 기록이 있으면)
         if (watchHistoryRepository.existsByUserAndScheduleItemAndLeftAtIsNull(user, scheduleItem)) {
 
@@ -56,6 +66,7 @@ public class TheaterEnterService {
         }
         // 시청 기록 생성
         WatchHistory history = watchHistoryRepository.save(WatchHistory.create(user, scheduleItem));
+        history.enter();
 
         return TheaterEnterResponse.from(history);
     }

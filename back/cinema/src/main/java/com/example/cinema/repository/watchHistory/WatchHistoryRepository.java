@@ -37,4 +37,6 @@ public interface WatchHistoryRepository extends JpaRepository<WatchHistory, Long
      */
     long countByScheduleItemAndLeftAtIsNull(ScheduleItem scheduleItem);
 
+    boolean existsFindByUserAndScheduleItem(User user, ScheduleItem scheduleItem);
+
 }
