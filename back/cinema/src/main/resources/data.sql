@@ -1,5 +1,18 @@
+-- Data Initialization for Testing
+-- Combined from test-content-data.sql, test-schedule-data.sql, test-review-data.sql
 
-USE `cinema-db`;
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE reviews;
+TRUNCATE TABLE watch_histories;
+TRUNCATE TABLE schedule_items;
+TRUNCATE TABLE schedule_days;
+TRUNCATE TABLE tag_maps;
+TRUNCATE TABLE contents;
+TRUNCATE TABLE media_assets;
+TRUNCATE TABLE tags;
+TRUNCATE TABLE users;
+SET FOREIGN_KEY_CHECKS = 1;
+
 -- Users (4)
 INSERT INTO users (email, nickname, password_hash, seller, created_at, updated_at) VALUES 
 ('admin@example.com', 'Administrator', '{noop}password1234', true, NOW(), NOW()),
@@ -54,7 +67,6 @@ INSERT INTO media_assets (owner_user_id, asset_type, bucket, object_key, content
 (2, 'POSTER_IMAGE', 'cinema-bucket', 'poster30.jpg', 'image/jpeg', 'PUBLIC', 1024, NOW(), NOW());
 
 -- Contents (30)
--- Varied views (100 ~ 1000000), varied dates (2024~2025)
 INSERT INTO contents (owner_user_id, title, description, poster_asset_id, status, total_view, month_view, created_at, updated_at) VALUES
 (1, 'Inception of Dreams', 'A mind-bending thriller.', 1, 'PUBLISHED', 15000, 1200, '2025-01-01 10:00:00', '2025-01-01 10:00:00'),
 (2, 'The Dark Knight Rises Again', 'Batman returns.', 2, 'PUBLISHED', 50000, 4000, '2025-01-02 11:00:00', '2025-01-02 11:00:00'),
@@ -87,7 +99,7 @@ INSERT INTO contents (owner_user_id, title, description, poster_asset_id, status
 (1, 'Spirited Away: Chihiro', 'Bathhouse.', 29, 'PUBLISHED', 135000, 12500, '2025-01-29 23:00:00', '2025-01-29 23:00:00'),
 (2, 'Saving Private Ryan: Mission', 'Omaha beach.', 30, 'PUBLISHED', 105000, 9800, '2025-01-30 09:00:00', '2025-01-30 09:00:00');
 
--- Tag Maps (Randomly distributed)
+-- Tag Maps
 INSERT INTO tag_maps (content_id, tag_id) VALUES
 (1, 1), (1, 2), (1, 6), -- Inception: Action, Sci-Fi, Thriller
 (2, 1), (2, 6), (2, 12), -- Dark Knight: Action, Thriller, Crime
@@ -119,3 +131,89 @@ INSERT INTO tag_maps (content_id, tag_id) VALUES
 (28, 3), (28, 7), (28, 17), -- Life is Beautiful: Drama, Comedy, War
 (29, 5), (29, 9), (29, 10), -- Spirited Away: Adventure, Fantasy, Animation
 (30, 1), (30, 3), (30, 17); -- Saving Private Ryan: Action, Drama, War
+
+-- Schedule Days
+INSERT INTO schedule_days (content_id, schedule_date, is_locked, created_at, updated_at) VALUES
+(1, '2026-01-19', true, NOW(), NOW()),   -- ID: 1
+(1, '2026-01-20', true, NOW(), NOW()),   -- ID: 2
+(1, '2026-01-21', false, NOW(), NOW()),  -- ID: 3
+(5, '2026-01-19', true, NOW(), NOW()),   -- ID: 4
+(5, '2026-01-22', false, NOW(), NOW()),  -- ID: 5
+(9, '2026-01-20', true, NOW(), NOW()),   -- ID: 6
+(9, '2026-01-23', true, NOW(), NOW()),   -- ID: 7
+(13, '2026-01-21', true, NOW(), NOW()),  -- ID: 8
+(13, '2026-01-24', false, NOW(), NOW()), -- ID: 9
+(17, '2026-01-22', true, NOW(), NOW()),  -- ID: 10
+(17, '2026-01-25', true, NOW(), NOW()),  -- ID: 11
+(3, '2026-01-19', true, NOW(), NOW()),   -- ID: 12
+(3, '2026-01-21', true, NOW(), NOW()),   -- ID: 13
+(3, '2026-01-23', false, NOW(), NOW()),  -- ID: 14
+(7, '2026-01-20', true, NOW(), NOW()),   -- ID: 15
+(7, '2026-01-22', true, NOW(), NOW()),   -- ID: 16
+(11, '2026-01-21', true, NOW(), NOW()),  -- ID: 17
+(11, '2026-01-24', true, NOW(), NOW()),  -- ID: 18
+(15, '2026-01-22', true, NOW(), NOW()),  -- ID: 19
+(15, '2026-01-25', false, NOW(), NOW()), -- ID: 20
+(4, '2026-01-19', true, NOW(), NOW()),   -- ID: 21
+(4, '2026-01-20', true, NOW(), NOW()),   -- ID: 22
+(4, '2026-01-22', false, NOW(), NOW()),  -- ID: 23
+(8, '2026-01-21', true, NOW(), NOW()),   -- ID: 24
+(8, '2026-01-23', true, NOW(), NOW()),   -- ID: 25
+(12, '2026-01-20', true, NOW(), NOW()),  -- ID: 26
+(12, '2026-01-24', true, NOW(), NOW()),  -- ID: 27
+(16, '2026-01-21', true, NOW(), NOW()),  -- ID: 28
+(16, '2026-01-25', false, NOW(), NOW()); -- ID: 29
+
+-- Schedule Items
+INSERT INTO schedule_items (schedule_day_id, content_id, start_at, end_at, status, created_at, updated_at) VALUES
+(1, 1, '2026-01-19 10:00:00', '2026-01-19 12:00:00', 'CLOSED', NOW(), NOW()),
+(1, 1, '2026-01-19 14:00:00', '2026-01-19 16:00:00', 'CLOSED', NOW(), NOW()),
+(1, 1, '2026-01-19 20:00:00', '2026-01-19 22:00:00', 'CLOSED', NOW(), NOW()),
+(2, 1, '2026-01-20 09:00:00', '2026-01-20 11:00:00', 'CLOSED', NOW(), NOW()),
+(2, 1, '2026-01-20 15:00:00', '2026-01-20 17:00:00', 'CLOSED', NOW(), NOW()),
+(3, 1, '2026-01-21 11:00:00', '2026-01-21 13:00:00', 'CLOSED', NOW(), NOW()),
+(4, 5, '2026-01-19 11:00:00', '2026-01-19 13:00:00', 'CLOSED', NOW(), NOW()),
+(4, 5, '2026-01-19 17:00:00', '2026-01-19 19:00:00', 'CLOSED', NOW(), NOW()),
+(5, 5, '2026-01-22 10:00:00', '2026-01-22 12:00:00', 'CLOSED', NOW(), NOW()),
+(6, 9, '2026-01-20 13:00:00', '2026-01-20 15:00:00', 'CLOSED', NOW(), NOW()),
+(7, 9, '2026-01-23 19:00:00', '2026-01-23 21:00:00', 'CLOSED', NOW(), NOW()),
+(8, 13, '2026-01-21 10:00:00', '2026-01-21 12:00:00', 'CLOSED', NOW(), NOW()),
+(9, 13, '2026-01-24 11:00:00', '2026-01-24 13:00:00', 'CLOSED', NOW(), NOW()),
+(10, 17, '2026-01-22 09:00:00', '2026-01-22 11:00:00', 'CLOSED', NOW(), NOW()),
+(11, 17, '2026-01-25 15:00:00', '2026-01-25 17:00:00', 'CLOSED', NOW(), NOW()),
+(12, 3, '2026-01-19 09:00:00', '2026-01-19 11:00:00', 'CLOSED', NOW(), NOW()),
+(12, 3, '2026-01-19 21:00:00', '2026-01-19 23:00:00', 'CLOSED', NOW(), NOW()),
+(13, 3, '2026-01-21 14:00:00', '2026-01-21 16:00:00', 'CLOSED', NOW(), NOW()),
+(14, 3, '2026-01-23 10:00:00', '2026-01-23 12:00:00', 'CLOSED', NOW(), NOW()),
+(15, 7, '2026-01-20 14:00:00', '2026-01-20 16:00:00', 'CLOSED', NOW(), NOW()),
+(16, 7, '2026-01-22 18:00:00', '2026-01-22 20:00:00', 'CLOSED', NOW(), NOW()),
+(17, 11, '2026-01-21 08:00:00', '2026-01-21 10:00:00', 'CLOSED', NOW(), NOW()),
+(18, 11, '2026-01-24 20:00:00', '2026-01-24 22:00:00', 'CLOSED', NOW(), NOW()),
+(19, 15, '2026-01-22 10:00:00', '2026-01-22 12:00:00', 'CLOSED', NOW(), NOW()),
+(20, 15, '2026-01-25 21:00:00', '2026-01-25 23:00:00', 'CLOSED', NOW(), NOW()),
+(21, 4, '2026-01-19 22:00:00', '2026-01-19 23:59:00', 'CLOSED', NOW(), NOW()),
+(22, 4, '2026-01-20 10:00:00', '2026-01-20 12:00:00', 'CLOSED', NOW(), NOW()),
+(22, 4, '2026-01-20 18:00:00', '2026-01-20 20:00:00', 'CLOSED', NOW(), NOW()),
+(23, 4, '2026-01-22 14:00:00', '2026-01-22 16:00:00', 'CLOSED', NOW(), NOW()),
+(24, 8, '2026-01-21 13:00:00', '2026-01-21 15:00:00', 'CLOSED', NOW(), NOW()),
+(25, 8, '2026-01-23 21:00:00', '2026-01-23 23:00:00', 'CLOSED', NOW(), NOW()),
+(26, 12, '2026-01-20 08:00:00', '2026-01-20 10:00:00', 'CLOSED', NOW(), NOW()),
+(27, 12, '2026-01-24 16:00:00', '2026-01-24 18:00:00', 'CLOSED', NOW(), NOW()),
+(28, 16, '2026-01-21 19:00:00', '2026-01-21 21:00:00', 'CLOSED', NOW(), NOW()),
+(29, 16, '2026-01-25 11:00:00', '2026-01-25 13:00:00', 'CLOSED', NOW(), NOW());
+
+-- Watch Histories & Reviews
+INSERT INTO watch_histories (user_id, schedule_item_id, enter_at, left_at, view_counted, created_at, updated_at) VALUES
+(2, 1, '2026-01-19 10:00:00', '2026-01-19 12:00:00', true, '2026-01-19 12:00:00', '2026-01-19 12:00:00'),
+(2, 2, '2026-01-19 14:00:00', '2026-01-19 16:00:00', true, '2026-01-19 16:00:00', '2026-01-19 16:00:00'),
+(2, 7, '2026-01-19 11:00:00', '2026-01-19 13:00:00', true, '2026-01-19 13:00:00', '2026-01-19 13:00:00'),
+(2, 16, '2026-01-19 09:00:00', '2026-01-19 09:10:00', false, '2026-01-19 09:10:00', '2026-01-19 09:10:00');
+
+INSERT INTO reviews (content_id, user_id, watch_id, rating, comment, created_at, updated_at) VALUES
+(1, 2, 1, 5, '인셉션은 정말 다시 봐도 명작이네요. 꿈 속의 꿈!', '2026-01-19 13:00:00', '2026-01-19 13:00:00');
+
+INSERT INTO watch_histories (user_id, schedule_item_id, enter_at, left_at, view_counted, created_at, updated_at) VALUES
+(3, 1, '2026-01-19 10:00:00', '2026-01-19 12:00:00', true, '2026-01-19 12:00:00', '2026-01-19 12:00:00');
+
+INSERT INTO reviews (content_id, user_id, watch_id, rating, comment, created_at, updated_at) VALUES
+(1, 3, 5, 4, '복잡하지만 몰입감이 대단합니다.', '2026-01-19 13:30:00', '2026-01-19 13:30:00');

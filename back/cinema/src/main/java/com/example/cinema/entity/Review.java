@@ -10,7 +10,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Table(name = "reviews", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"content_id", "user_id"})
+        @UniqueConstraint(columnNames = {"watch_id"})
 })
 public class Review extends BaseEntity {
 
@@ -27,9 +27,18 @@ public class Review extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "watch_id", nullable = false)
+    private WatchHistory watchHistory;
+
     @Column(nullable = false)
     private Integer rating;
 
     @Column(columnDefinition = "TEXT")
     private String comment;
+
+    public void update(Integer rating, String comment) {
+        this.rating = rating;
+        this.comment = comment;
+    }
 }
