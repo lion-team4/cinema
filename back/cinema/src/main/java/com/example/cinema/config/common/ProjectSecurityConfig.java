@@ -77,7 +77,8 @@ public class ProjectSecurityConfig {
                                 "/users/*/contents",
                                 "/contents/search",
                                 "/contents/**",
-                                "/media-assets/**"
+                                "/media-assets/**",
+                                "/schedules/**"
                         ).permitAll()
 
                         // 테스트 페이지
