@@ -39,6 +39,7 @@ out/
 
 # Test profile config
 src/main/resources/application-test.yml
+src/main/resources/application-test.yaml
 /.env
 
 # Test .html files

@@ -87,6 +87,8 @@ public class Content extends BaseEntity {
         this.title = title;
         this.description = description;
         this.status = (status==null) ? ContentStatus.DRAFT : status;
+        this.totalView = 0L;
+        this.monthView = 0L;
     }
 
     public void markEncoding() {

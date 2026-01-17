@@ -6,6 +6,7 @@ import com.example.cinema.entity.ScheduleItem;
 import com.example.cinema.entity.User;
 import com.example.cinema.entity.WatchHistory;
 import com.example.cinema.repository.schedule.ScheduleItemRepository;
+import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.repository.watchHistory.WatchHistoryRepository;
 import com.example.cinema.type.ScheduleStatus;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class TheaterEnterService {
 
     private final WatchHistoryRepository watchHistoryRepository;
     private final ScheduleItemRepository scheduleItemRepository;
+    private final UserRepository userRepository;
 
     /**
      * 상영관 입장
@@ -28,7 +30,11 @@ public class TheaterEnterService {
      * - 중복 입장 방지
      */
     @Transactional
-    public TheaterEnterResponse enter(long scheduleId, User user) {
+    public TheaterEnterResponse enter(long scheduleId, User detachedUser) {
+        // 영속성 컨텍스트 내에서 User 다시 조회 (Lazy Loading 문제 해결)
+        User user = userRepository.findById(detachedUser.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
         ScheduleItem scheduleItem = getScheduleItem(scheduleId);
 
         // 구독 상태 검증
@@ -58,7 +64,11 @@ public class TheaterEnterService {
      * 상영관 퇴장
      */
     @Transactional
-    public TheaterLeaveResponse leave(long scheduleId, User user) {
+    public TheaterLeaveResponse leave(long scheduleId, User detachedUser) {
+        // 영속성 컨텍스트 내에서 User 다시 조회
+        User user = userRepository.findById(detachedUser.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
         ScheduleItem scheduleItem = getScheduleItem(scheduleId);
 
         // 입장 기록 조회 (퇴장하지 않은 기록)
