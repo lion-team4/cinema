@@ -9,7 +9,6 @@ import java.time.LocalDate;
 // 유저의 전체 상영일정을 조회하는 요청
 @Setter
 @Getter
-@Setter
 public class ScheduleSearchRequest {
     private Integer page = 0;
     private Integer size = 10;
