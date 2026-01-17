@@ -58,17 +58,23 @@ public class ProjectSecurityConfig {
                         /* ==================================================
                          * PUBLIC (인증 불필요)
                          * ================================================== */
+                        // 정적 리소스
+                        .requestMatchers(
+                                "/favicon.ico",
+                                "/error"
+                        ).permitAll()
+
                         //Socket Connection
                         .requestMatchers(
                                 "/ws/**",
-                                "/ws",
-                                "/error"
+                                "/ws"
                         ).permitAll()
+
                         // 인증
                         .requestMatchers(
                                 "/auth/login",
                                 "/auth/signup",
-                                "/error"
+                                "/auth/reissue"
                         ).permitAll()
 
                         // 검색 / 조회
