@@ -29,12 +29,12 @@ logging:
     org.hibernate.orm.jdbc.bind: trace
 
 toss:
-  client-key: "test_ck_DnyRpQWGrNWv4kjAqK4l8Kwv1M9E"
-  secret-key: "test_sk_6BYq7GWPVv5OGW16XoKa3NE5vbo1"
+  client-key: ""
+  secret-key: ""
   url: "https://api.tosspayments.com/v1"
 
 jwt:
-  secret: "dGhpcy1pcy1hLXZlcnktbG9uZy1hbmQtc2VjdXJlLWp3dC1zZWNyZXQta2V5LXRoYXQtaXMtbGVhc3QtNTEyLWJpdHMtbG9uZy1mb3ItaHM1MTItYWxnb3JpdGhtLWluLWJhc2U2NA=="
+  secret: ${JWT_SECRET}
 
 aws:
   region: ap-northeast-2
