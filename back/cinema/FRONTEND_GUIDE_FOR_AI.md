@@ -1,6 +1,6 @@
-# Cinema Streaming Service - Frontend Development Guide
+# Lion Cinema Streaming Service - Frontend Development Guide
 
-This document serves as a comprehensive guide for an AI agent to build the frontend application for the **Cinema Streaming Backend**.
+This document serves as a comprehensive guide for an AI agent to build the frontend application for the **Lion Cinema Backend**.
 
 ## 1. Project Overview
 - **Domain:** Cinema Streaming Platform with "Theater" (Synchronized Viewing) capability.
@@ -54,12 +54,22 @@ interface PageResponse<T> {
 
 ## 3. Core Features & Implementation Details
 
-### A. Authentication (`/auth`)
+### A. Authentication & User (`/auth`, `/users`)
 - **Login:** `POST /auth/login` (Body: email, password).
 - **Signup:** `POST /auth/signup` (Body: email, password, username, nickname, etc.).
-- **User Profile:** `GET /users/me`.
+- **My Profile:** `GET /users/me` (Response: `UserDetailResponse`).
+- **User Search:** `GET /users/search/{nick}/info` (Response: `UserDetailResponse`).
+- **User Content List:** `GET /users/{nick}/contents` (Query: page, size, sort, etc.).
 
-### B. Content & Streaming (`/contents`)
+### B. Content Discovery & Streaming (`/contents`)
+- **Search API:** `GET /contents`
+    - **Query Params:**
+        - `keyword`: Search text (Title, Description, etc.)
+        - `page`, `size`: Pagination
+        - `tag`: Filter by tags (can be repeated)
+        - `tag-mode`: `AND` | `OR`
+        - `sort`: `view` (View Count), `createdAt` (Date)
+        - `asc`: `true` | `false`
 - **Video Format:** HLS (`.m3u8`).
 - **Player:** Use `HLS.js` to play the URL provided in the content response.
 - **Upload Flow (Admin/Creator):**
@@ -67,7 +77,13 @@ interface PageResponse<T> {
   2. `PUT` file to the S3 URL directly (Frontend uploads to AWS).
   3. `POST /api/assets/complete` -> Notify backend to start processing.
 
-### C. Theater (Synchronized Viewing)
+### C. Reviews (`/contents/reviews`)
+- **List:** `GET /contents/reviews/search/{contentId}` (Response: `PageResponse<ReviewListResponse>`).
+- **Create:** `POST /contents/reviews` (Body: `ReviewCreateRequest`).
+- **Update:** `PUT /contents/reviews/{reviewId}`.
+- **Delete:** `DELETE /contents/reviews/{reviewId}`.
+
+### D. Theater (Synchronized Viewing)
 - **Concept:** Multiple users watch a movie together at a fixed schedule.
 - **WebSocket:**
   - **Endpoint:** `ws://localhost:8080/ws` (or `/ws-sockjs` for fallback).
@@ -80,7 +96,7 @@ interface PageResponse<T> {
       - If `state` is `PLAYING`, seek video to `currentPosition` (server time).
       - Disable user controls (Pause/Seek) generally, or re-sync if they drift.
 
-### D. Subscription & Payments (`/users/subscriptions`)
+### E. Subscription & Payments (`/users/subscriptions`)
 - **Provider:** Toss Payments.
 - **Flow:**
   1. Frontend uses Toss Payments Widget/SDK to authorize a card.
@@ -93,23 +109,34 @@ interface PageResponse<T> {
 
 ### Auth & User
 ```typescript
-interface User {
-  id: number;
-  email: string;
-  nickname: string;
-  role: 'USER' | 'ADMIN';
-}
-
 interface TokenResponse {
   accessToken: string;
   refreshToken: string;
   grantType: string;
   expiresIn: number;
 }
+
+interface UserDetailResponse {
+  userId: number;
+  email: string;
+  nickname: string;
+  profileImage: string | null; // S3 Object Key
+  seller: boolean; // Creator status
+}
 ```
 
-### Content
+### Content & Search
 ```typescript
+interface ContentSearchResponse {
+  contentId: number;
+  title: string;
+  description: string;
+  posterImage: string | null; // S3 Key for thumbnail
+  status: 'PUBLISHED' | 'DRAFT' | 'PRIVATE';
+  ownerNickname: string;
+  totalView: number;
+}
+
 interface Content {
   id: number;
   title: string;
@@ -119,6 +146,23 @@ interface Content {
   director: string;
   releaseYear: number;
   tags: string[];
+}
+```
+
+### Reviews
+```typescript
+interface ReviewCreateRequest {
+  rating: number; // 1 ~ 5
+  'content-id': number; // Note the kebab-case in JSON
+  comment?: string;
+}
+
+interface ReviewListResponse {
+  reviewId: number;
+  rating: number;
+  comment: string;
+  writerNickname: string;
+  createdAt: string; // ISO DateTime
 }
 ```
 
@@ -157,12 +201,16 @@ interface Subscription {
 /app
   /(auth)/login/page.tsx
   /(auth)/signup/page.tsx
-  /(main)/page.tsx          // Home (Content List)
-  /(main)/contents/[id]/page.tsx // VOD Player
+  /(main)/page.tsx             // Home (Featured Content)
+  /(main)/search/page.tsx      // Search Results (Grid of ContentSearchResponse)
+  /(main)/contents/[id]/page.tsx // VOD Player & Reviews
   /(main)/theater/[id]/page.tsx  // Sync Theater Player
+  /(main)/users/[nick]/page.tsx  // User Profile & Content List
   /components
     /player/HlsPlayer.tsx
     /theater/ChatRoom.tsx
+    /review/ReviewList.tsx
+    /review/ReviewForm.tsx
     /ui/button.tsx
   /lib
     /api.ts                 // Axios instance

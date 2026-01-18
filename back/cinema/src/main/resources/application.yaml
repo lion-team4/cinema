@@ -5,7 +5,7 @@ spring:
     active: test
 
   datasource:
-    url: jdbc:mysql://localhost:3306/cinema-db
+    url: jdbc:mysql://localhost:3306/cinema_db
     username: root
     password: root1234
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -29,12 +29,12 @@ logging:
     org.hibernate.orm.jdbc.bind: trace
 
 toss:
-  client-key: ""
-  secret-key: ""
+  client-key: "test_ck_DnyRpQWGrNWv4kjAqK4l8Kwv1M9E"
+  secret-key: "test_sk_6BYq7GWPVv5OGW16XoKa3NE5vbo1"
   url: "https://api.tosspayments.com/v1"
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: "dGhpcy1pcy1hLXZlcnktbG9uZy1hbmQtc2VjdXJlLWp3dC1zZWNyZXQta2V5LXRoYXQtaXMtbGVhc3QtNTEyLWJpdHMtbG9uZy1mb3ItaHM1MTItYWxnb3JpdGhtLWluLWJhc2U2NA=="
 
 aws:
   region: ap-northeast-2
