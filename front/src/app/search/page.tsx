@@ -7,6 +7,18 @@ import { type ApiResponse, type ContentSearchResponse, type PageResponse } from 
 import { useAuthStore } from '@/lib/store';
 
 type SortField = 'CREATED' | 'UPDATED' | 'VIEW';
+type ScheduleStatus = 'WAITING' | 'PLAYING' | 'CLOSED' | 'ENDED';
+
+type ScheduleSearchResponse = {
+  scheduleItemId: number;
+  contentId: number;
+  contentTitle: string;
+  creatorNickname: string;
+  startAt: string;
+  endAt: string;
+  status: ScheduleStatus;
+  isLocked: boolean;
+};
 
 export default function SearchPage() {
   const { user } = useAuthStore();
@@ -32,6 +44,14 @@ export default function SearchPage() {
   const [items, setItems] = useState<ContentSearchResponse[]>([]);
   const [error, setError] = useState('');
   const [totalPages, setTotalPages] = useState(0);
+  const [liveSchedules, setLiveSchedules] = useState<ScheduleSearchResponse[]>([]);
+
+  const formatKst = (value: string) =>
+    new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value));
 
   useEffect(() => {
     setQuery(keyword);
@@ -89,6 +109,23 @@ export default function SearchPage() {
 
     fetchContents();
   }, [params]);
+
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        const { data } = await api.get<ApiResponse<PageResponse<ScheduleSearchResponse>>>('/schedules', {
+          params: { page: 0, size: 10 },
+        });
+        const list = data.data?.content ?? [];
+        const filtered = list.filter((item) => item.status === 'WAITING' || item.status === 'PLAYING');
+        setLiveSchedules(filtered);
+      } catch {
+        setLiveSchedules([]);
+      }
+    };
+
+    fetchSchedules();
+  }, []);
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -183,6 +220,31 @@ export default function SearchPage() {
           </div>
         </div>
       </form>
+
+      {liveSchedules.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-lg font-semibold">지금 상영 중인 영화</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {liveSchedules.map((schedule) => (
+              <div key={schedule.scheduleItemId} className="rounded-xl border border-white/10 bg-white/5 p-5">
+                <div className="flex items-center justify-between text-xs text-white/60">
+                  <span>{schedule.status === 'PLAYING' ? '상영 중' : '대기 중'}</span>
+                  <span>{formatKst(schedule.startAt)}</span>
+                </div>
+                <h3 className="mt-3 text-lg font-semibold">{schedule.contentTitle}</h3>
+                <p className="mt-2 text-xs text-white/60">감독 {schedule.creatorNickname}</p>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/watch/${schedule.scheduleItemId}`)}
+                  className="mt-4 w-full rounded-md bg-red-600 py-2 text-sm font-semibold text-white hover:bg-red-500 transition-colors"
+                >
+                  상영하기
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading && (
         <div className="mt-10 rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/60">

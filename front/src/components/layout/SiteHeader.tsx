@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import { api } from '@/lib/api';
 
 export default function SiteHeader() {
+  const router = useRouter();
   const { user, accessToken, logout } = useAuthStore();
 
   const handleLogout = async () => {
@@ -14,6 +16,7 @@ export default function SiteHeader() {
       // ignore network/logout errors
     } finally {
       logout();
+      router.push('/login');
     }
   };
 
