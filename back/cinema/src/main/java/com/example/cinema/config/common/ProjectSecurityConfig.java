@@ -68,6 +68,7 @@ public class ProjectSecurityConfig {
                         .requestMatchers(
                                 "/auth/login",
                                 "/auth/signup",
+                                "/auth/reissue",
                                 "/error"
                         ).permitAll()
 
@@ -76,7 +77,7 @@ public class ProjectSecurityConfig {
                                 "/users/search/**",
                                 "/users/*/contents",
                                 "/contents/search",
-                                "/contents/**",
+                                "/contents",
                                 "/media-assets/**",
                                 "/schedules/**"
                         ).permitAll()
@@ -107,6 +108,8 @@ public class ProjectSecurityConfig {
 
                         // 콘텐츠 관리
                         .requestMatchers(
+                                "/contents/*/edit",
+                                "/contents/*/encoding-status",
                                 "/contents",
                                 "/contents/**"
                         ).authenticated()

@@ -12,6 +12,7 @@ import com.example.cinema.exception.BusinessException;
 import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.mediaAsset.MediaAssetRepository;
+import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.type.AssetType;
 import com.example.cinema.type.ContentStatus;
 import lombok.RequiredArgsConstructor;
@@ -25,16 +26,18 @@ import static com.example.cinema.type.AssetType.*;
 public class ContentService {
     private final ContentRepository contentRepository;
     private final MediaAssetRepository mediaAssetRepository;
+    private final UserRepository userRepository;
 
     //1차 컨텐츠 등록
     @Transactional
     public ContentResponse createContent(ContentRequest contentRequest, User user) {
+        User persistentUser = getPersistentUser(user);
         //유저 권한 확인
-        if (!user.getSeller())
+        if (!persistentUser.getSeller())
             throw new BusinessException("감독 등록 후에 이용가능합니다.", ErrorCode.ACCESS_DENIED);
 
         Content content = contentRepository.save(
-                new Content(user, contentRequest.getTitle(), contentRequest.getDescription()));
+                new Content(persistentUser, contentRequest.getTitle(), contentRequest.getDescription()));
 
         return ContentResponse.from(content);
     }
@@ -45,9 +48,9 @@ public class ContentService {
                 ContentAssetAttachRequest assetAttachRequest,
                 User user,
                 Long contentId) {
-
+        User persistentUser = getPersistentUser(user);
         Content content = getContent(contentId);
-        validateOwner(user, content);
+        validateOwner(persistentUser, content);
 
         //MediaAsset 을 dto에서 추출 후 컨텐츠에 저장
         MediaAsset poster = getAssetOrThrow(
@@ -65,8 +68,9 @@ public class ContentService {
     //수정폼 조회
     @Transactional(readOnly = true)
     public ContentEditResponse getEditContent(User user, Long contentId) {
+        User persistentUser = getPersistentUser(user);
         Content content = getContent(contentId);
-        validateOwner(user, content);
+        validateOwner(persistentUser, content);
 
         return ContentEditResponse.from(content);
     }
@@ -76,8 +80,9 @@ public class ContentService {
     public ContentEditResponse updateContent(User user,
                                                 Long contentId,
                                                 ContentUpdateRequest updateRequest) {
+        User persistentUser = getPersistentUser(user);
         Content content = getContent(contentId);
-        validateOwner(user, content);
+        validateOwner(persistentUser, content);
 
         if (content.getStatus() == ContentStatus.PUBLISHED)
             throw new BusinessException("상영신청이 완료된 컨텐츠는 수정할 수 없습니다.", ErrorCode.INVALID_INPUT_VALUE);
@@ -102,15 +107,17 @@ public class ContentService {
 
     @Transactional(readOnly = true)
     public ContentEncodingStatusResponse getEncodingStatus(User user, Long contentId) {
+        User persistentUser = getPersistentUser(user);
         Content content = getContent(contentId);
-        validateOwner(user, content);
+        validateOwner(persistentUser, content);
         return ContentEncodingStatusResponse.from(content);
     }
 
 
     public void deleteContent(User user, Long contentId) {
+        User persistentUser = getPersistentUser(user);
         Content content = getContent(contentId);
-        validateOwner(user, content);
+        validateOwner(persistentUser, content);
 
         contentRepository.deleteById(contentId);
     }
@@ -128,6 +135,14 @@ public class ContentService {
     private Content getContent(Long contentId) {
         return contentRepository.findById(contentId)
                 .orElseThrow(()-> new BusinessException("해당 영화가 존재하지 않습니다.", ErrorCode.CONTENT_NOT_FOUND));
+    }
+
+    private User getPersistentUser(User user) {
+        if (user == null || user.getUserId() == null) {
+            throw new BusinessException("사용자 정보를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND);
+        }
+        return userRepository.findById(user.getUserId())
+                .orElseThrow(() -> new BusinessException("사용자 정보를 찾을 수 없습니다.", ErrorCode.USER_NOT_FOUND));
     }
 
     private void validateOwner(User user, Content content) {

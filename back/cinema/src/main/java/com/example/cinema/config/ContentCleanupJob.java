@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class ContentCleanupJob {
     private final ContentRepository contentRepository;
 
-    @Scheduled(fixedDelay = 10 * 60 * 1000) // 10분마다 (이전 실행 끝난 후 10분)
+    @Scheduled(cron = "0 0 0,12 * * *", zone = "Asia/Seoul") // 자정/정오 하루 2회
     @Transactional
     public void deleteOldDraftContents() {
         LocalDateTime cutoff = LocalDateTime.now().minusHours(24);
