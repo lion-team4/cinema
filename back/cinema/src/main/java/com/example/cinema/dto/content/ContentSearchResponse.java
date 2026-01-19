@@ -6,8 +6,6 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.List;
-
 /**
  * 콘텐츠 검색 및 목록 조회 응답 DTO
  * <p>
@@ -22,7 +20,7 @@ public class ContentSearchResponse {
     private final String title;
     private final String description;
     /**
-     * 포스터 이미지 S3 Key (목록 썸네일용)
+     * 포스터 이미지 URL (목록 썸네일용)
      */
     private final String posterImage;
     /**
@@ -31,17 +29,30 @@ public class ContentSearchResponse {
     private final ContentStatus status;
     private final String ownerNickname;
     private final Long totalView;
+    private final Long durationMs;
 
 
     public static ContentSearchResponse from(Content content) {
+        return from(content, content.getPoster() != null ? content.getPoster().getObjectKey() : null);
+    }
+
+    public static ContentSearchResponse from(Content content, String posterImageUrl) {
+        Long durationMs = null;
+        if (content.getVideoHlsMaster() != null) {
+            durationMs = content.getVideoHlsMaster().getDurationMs();
+        } else if (content.getVideoSource() != null) {
+            durationMs = content.getVideoSource().getDurationMs();
+        }
+
         return new ContentSearchResponse(
                 content.getContentId(),
                 content.getTitle(),
                 content.getDescription(),
-                content.getPoster() != null ? content.getPoster().getObjectKey() : null,
+                posterImageUrl,
                 content.getStatus(),
                 content.getOwner().getNickname(),
-                content.getTotalView()
+                content.getTotalView(),
+                durationMs
         );
     }
 }

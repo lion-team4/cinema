@@ -1,10 +1,67 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/lib/store';
+import type { ApiResponse, SubscriptionResponse } from '@/types';
+
 export default function Home() {
+  const { accessToken, hasHydrated } = useAuthStore();
+  const [checked, setChecked] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [endMessage, setEndMessage] = useState('');
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (!accessToken) {
+      setIsSubscribed(false);
+      setChecked(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    api
+      .get<ApiResponse<SubscriptionResponse>>('/users/subscriptions')
+      .then((response) => {
+        if (cancelled) return;
+        const subscription = response.data.data;
+        setIsSubscribed(subscription?.status === 'ACTIVE');
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setIsSubscribed(false);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setChecked(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, hasHydrated]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const message = sessionStorage.getItem('theaterEndedMessage');
+    if (message) {
+      setEndMessage(message);
+      sessionStorage.removeItem('theaterEndedMessage');
+    }
+  }, []);
+
   return (
     <div className="relative min-h-screen bg-black text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(229,9,20,0.35),_transparent_55%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(to_bottom,_rgba(0,0,0,0.1)_0%,_rgba(0,0,0,0.9)_70%,_rgba(0,0,0,1)_100%)]" />
 
       <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-6 py-16">
+        {endMessage && (
+          <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            {endMessage}
+          </div>
+        )}
         <div className="max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.35em] text-white/60">
             Your private cinema
@@ -17,12 +74,21 @@ export default function Home() {
             언제 어디서나 끊김 없이 감상하세요.
           </p>
           <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-            <a
-              href="/subscription"
-              className="inline-flex items-center justify-center rounded-md bg-red-600 px-6 py-3 text-sm font-semibold text-white hover:bg-red-500 transition-colors"
-            >
-              지금 구독하기
-            </a>
+            {checked && isSubscribed ? (
+              <a
+                href="/search"
+                className="inline-flex items-center justify-center rounded-md bg-red-600 px-6 py-3 text-sm font-semibold text-white hover:bg-red-500 transition-colors"
+              >
+                영상 시청
+              </a>
+            ) : (
+              <a
+                href="/subscription"
+                className="inline-flex items-center justify-center rounded-md bg-red-600 px-6 py-3 text-sm font-semibold text-white hover:bg-red-500 transition-colors"
+              >
+                지금 구독하기
+              </a>
+            )}
             <a
               href="/contents/create"
               className="inline-flex items-center justify-center rounded-md border border-white/20 px-6 py-3 text-sm font-semibold text-white/80 hover:border-white/60 hover:text-white transition-colors"

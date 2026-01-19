@@ -4,6 +4,7 @@ import com.example.cinema.config.common.JwtTokenProvider;
 import com.example.cinema.dto.auth.LoginRequest;
 import com.example.cinema.dto.auth.SignupRequest;
 import com.example.cinema.dto.auth.TokenResponse;
+import com.example.cinema.dto.theater.TheaterLogResponse;
 import com.example.cinema.dto.user.UserGetResponse;
 import com.example.cinema.dto.user.UserUpdateRequest;
 import com.example.cinema.dto.user.UserUpdateResponse;
@@ -13,6 +14,7 @@ import com.example.cinema.exception.BusinessException;
 import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.repository.mediaAsset.MediaAssetRepository;
 import com.example.cinema.repository.user.UserRepository;
+import com.example.cinema.repository.watchHistory.WatchHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,6 +23,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -28,6 +33,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final MediaAssetRepository mediaAssetRepository;
+    private final WatchHistoryRepository watchHistoryRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
@@ -155,6 +161,17 @@ public class UserService {
             throw new BusinessException("비밀번호가 일치하지 않습니다.", ErrorCode.LOGIN_FAILED);
         }
 
+        refreshTokenRepository.deleteById(user.getEmail());
         user.withdraw();
+    }
+
+    public List<TheaterLogResponse> getWatchHistory(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        return watchHistoryRepository.findByUserOrderByCreatedAtDesc(user)
+                .stream()
+                .map(TheaterLogResponse::from)
+                .collect(Collectors.toList());
     }
 }

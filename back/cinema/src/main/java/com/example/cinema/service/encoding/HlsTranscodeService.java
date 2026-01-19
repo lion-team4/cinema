@@ -25,10 +25,13 @@ public class HlsTranscodeService {
     @Value("${ffmpeg.work_dir}")
     private String workDir;
 
-    public int transcodeAndUpload(long contentId,
-                                  String sourceKey,
-                                  String masterKey,
-                                  long minBytesVideo) {
+    public record HlsTranscodeResult(int segmentCount, long durationMs) {
+    }
+
+    public HlsTranscodeResult transcodeAndUpload(long contentId,
+                                                 String sourceKey,
+                                                 String masterKey,
+                                                 long minBytesVideo) {
 
         Path jobDir = Paths.get(workDir).resolve("content-" + contentId);
         Path input = jobDir.resolve("source.mp4");
@@ -59,7 +62,8 @@ public class HlsTranscodeService {
 
             s3ObjectService.uploadFile(masterKey, m3u8, "application/vnd.apple.mpegurl", "public, max-age=60");
 
-            return tsFiles.size();
+            long durationMs = parseDurationMs(m3u8);
+            return new HlsTranscodeResult(tsFiles.size(), durationMs);
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
@@ -67,6 +71,21 @@ public class HlsTranscodeService {
         } finally {
             safeDelete(jobDir);
         }
+    }
+
+    private long parseDurationMs(Path m3u8) throws IOException {
+        double totalSeconds = 0.0;
+        for (String line : Files.readAllLines(m3u8)) {
+            if (!line.startsWith("#EXTINF:")) {
+                continue;
+            }
+            int comma = line.indexOf(',');
+            String raw = line.substring(8, comma > 0 ? comma : line.length()).trim();
+            if (!raw.isEmpty()) {
+                totalSeconds += Double.parseDouble(raw);
+            }
+        }
+        return Math.max(0L, Math.round(totalSeconds * 1000));
     }
 
     private void safeDelete(Path dir) {

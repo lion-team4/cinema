@@ -80,26 +80,31 @@ public class EncodingJobService {
         try {
             String masterKey = keyFactory.hlsMasterKey(contentId);
 
-            int segCount = hlsTranscodeService.transcodeAndUpload(
+            HlsTranscodeService.HlsTranscodeResult result = hlsTranscodeService.transcodeAndUpload(
                     contentId, sourceKey, masterKey, minBytesVideo
             );
 
             User owner = userRepository.findById(ownerUserId)
                     .orElseThrow(() -> new BusinessException("소유자 정보를 찾을 수 없습니다. ID: " + ownerUserId, ErrorCode.USER_NOT_FOUND));
 
+            var head = s3ObjectService.assertReady(
+                    masterKey, 1, "application/", 3, new long[]{300, 600, 1200}
+            );
             MediaAsset hls = mediaAssetService.createAsset(
                     owner,
                     AssetType.VIDEO_HLS_MASTER,
                     masterKey,
                     "application/vnd.apple.mpegurl",
                     Visibility.PUBLIC,
-                    null
+                    head,
+                    result.durationMs()
             );
 
             encodingTxService.linkHlsMaster(contentId, hls.getAssetId());
             encodingTxService.markReady(contentId);
 
-            log.info("Encoding success. jobId={} contentId={} segCount={}", jobId, contentId, segCount);
+            log.info("Encoding success. jobId={} contentId={} segCount={} durationMs={}",
+                    jobId, contentId, result.segmentCount(), result.durationMs());
 
         } catch (Exception e) {
             encodingTxService.markFailed(contentId, e.getMessage());

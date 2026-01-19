@@ -36,6 +36,7 @@ export interface ContentSearchResponse {
   status: ContentStatus;
   ownerNickname: string;
   totalView: number;
+  durationMs?: number | null;
 }
 
 export interface ContentDetail {
@@ -52,7 +53,7 @@ export interface ContentDetail {
 export interface ReviewListResponse {
   reviewId: number;
   rating: number;
-  comment: string;
+  comment: string | null;
   writerNickname: string;
   createdAt: string;
 }

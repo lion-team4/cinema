@@ -36,4 +36,11 @@ public class TheaterLeaveResponse {
                 .leftAt(history.getLeftAt())
                 .build();
     }
+
+    /**
+     * 입장 기록이 없을 때 빈 응답 반환
+     */
+    public static TheaterLeaveResponse empty() {
+        return TheaterLeaveResponse.builder().build();
+    }
 }

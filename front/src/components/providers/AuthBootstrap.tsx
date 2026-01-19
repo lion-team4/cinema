@@ -14,7 +14,7 @@ type UserProfileResponse = {
 };
 
 export default function AuthBootstrap() {
-  const { accessToken, user, setUser, hasHydrated } = useAuthStore();
+  const { accessToken, user, setUser, hasHydrated, logout } = useAuthStore();
   const attempted = useRef(false);
 
   useEffect(() => {
@@ -42,9 +42,9 @@ export default function AuthBootstrap() {
         });
       })
       .catch(() => {
-        // Keep tokens; some routes can still work without profile.
+        logout();
       });
-  }, [accessToken, hasHydrated, setUser, user]);
+  }, [accessToken, hasHydrated, logout, setUser, user]);
 
   return null;
 }

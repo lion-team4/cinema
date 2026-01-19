@@ -6,6 +6,43 @@ import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { type ApiResponse, type ContentSearchResponse, type PageResponse } from '@/types';
 import SubscriptionGate from '@/components/guards/SubscriptionGate';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import SectionHeader from '@/components/ui/SectionHeader';
+
+type ScheduleSearchResponse = {
+  scheduleItemId: number;
+  contentId: number;
+  contentTitle: string;
+  creatorNickname: string;
+  startAt: string;
+  endAt: string;
+  status: 'WAITING' | 'PLAYING' | 'ENDING' | 'CLOSED';
+  isLocked: boolean;
+};
+
+type ContentEditResponse = {
+  contentId: number;
+  title: string;
+  description: string;
+  posterAssetId: number | null;
+  videoSourceAssetId: number | null;
+  videoHlsMasterAssetId: number | null;
+  status: 'PUBLISHED' | 'DRAFT' | 'PRIVATE';
+};
+
+const statusLabel: Record<ContentSearchResponse['status'], string> = {
+  PUBLISHED: '공개',
+  DRAFT: '임시 저장',
+  PRIVATE: '비공개',
+};
+
+const statusColor: Record<ContentSearchResponse['status'], string> = {
+  PUBLISHED: 'bg-emerald-500/20 text-emerald-200',
+  DRAFT: 'bg-amber-500/20 text-amber-200',
+  PRIVATE: 'bg-slate-500/20 text-slate-200',
+};
 
 const formatLocalDateTime = (date: Date) => {
   const pad = (value: number) => value.toString().padStart(2, '0');
@@ -21,11 +58,25 @@ export default function ScheduleManagePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
   const [startAt, setStartAt] = useState('');
   const [durationMinutes, setDurationMinutes] = useState<number>(90);
-  const [lockSchedule, setLockSchedule] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
+  const [contentDetail, setContentDetail] = useState<ContentEditResponse | null>(null);
+  const [publishStatus, setPublishStatus] = useState<ContentEditResponse['status']>('DRAFT');
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [schedules, setSchedules] = useState<ScheduleSearchResponse[]>([]);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleError, setScheduleError] = useState('');
+  const [editingScheduleId, setEditingScheduleId] = useState<number | null>(null);
+  const [editingStartAt, setEditingStartAt] = useState('');
+  const [editingEndAt, setEditingEndAt] = useState('');
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
 
   const endAt = useMemo(() => {
     if (!startAt || !durationMinutes) return '';
@@ -34,6 +85,38 @@ export default function ScheduleManagePage() {
     const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
     return formatLocalDateTime(endDate);
   }, [durationMinutes, startAt]);
+
+  const toMinutes = (durationMs?: number | null) => {
+    if (!durationMs || durationMs <= 0) return null;
+    return Math.max(1, Math.ceil(durationMs / (60 * 1000)));
+  };
+
+  const pad = (value: number) => value.toString().padStart(2, '0');
+  const toDateKey = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+  const monthDays = useMemo(() => {
+    const firstDay = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+    const startOfGrid = new Date(firstDay);
+    startOfGrid.setDate(firstDay.getDate() - firstDay.getDay());
+    const days: Date[] = [];
+    for (let i = 0; i < 42; i += 1) {
+      const day = new Date(startOfGrid);
+      day.setDate(startOfGrid.getDate() + i);
+      days.push(day);
+    }
+    return days;
+  }, [calendarMonth]);
+
+  const scheduleByDate = useMemo(() => {
+    const map = new Map<string, ScheduleSearchResponse[]>();
+    schedules.forEach((item) => {
+      const key = toDateKey(new Date(item.startAt));
+      const list = map.get(key) ?? [];
+      list.push(item);
+      map.set(key, list);
+    });
+    return map;
+  }, [schedules]);
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -66,7 +149,74 @@ export default function ScheduleManagePage() {
     };
 
     fetchContents();
-  }, [hasHydrated, router, selectedId, user]);
+  }, [hasHydrated, router, user]);
+
+  const handleDeleteContent = async (contentId: number, title: string) => {
+    if (!window.confirm(`"${title}" 콘텐츠를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+    try {
+      setDeleting(contentId);
+      await api.delete(`/contents/${contentId}`);
+      const nextItems = items.filter((item) => item.contentId !== contentId);
+      setItems(nextItems);
+      if (selectedId === contentId) {
+        setSelectedId(nextItems[0]?.contentId ?? null);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || '콘텐츠 삭제에 실패했습니다.');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const selected = items.find((item) => item.contentId === selectedId);
+    const minutes = toMinutes(selected?.durationMs);
+    if (minutes) {
+      setDurationMinutes(minutes);
+    }
+  }, [items, selectedId]);
+
+  useEffect(() => {
+    if (!selectedId || !user) return;
+    const fetchContentDetail = async () => {
+      try {
+        const { data } = await api.get<ApiResponse<ContentEditResponse>>(`/contents/${selectedId}/edit`);
+        if (data.data) {
+          setContentDetail(data.data);
+          setPublishStatus(data.data.status);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchContentDetail();
+  }, [selectedId, user]);
+
+  const fetchSchedules = async () => {
+    if (!user) return;
+    try {
+      setScheduleLoading(true);
+      setScheduleError('');
+      const { data } = await api.get<ApiResponse<PageResponse<ScheduleSearchResponse>>>('/schedules', {
+        params: { page: 0, size: 200, nickname: user.nickname },
+      });
+      const list = data.data?.content ?? [];
+      setSchedules(list);
+    } catch (err: any) {
+      setScheduleError(err.response?.data?.message || '상영 일정 목록을 불러오지 못했습니다.');
+      setSchedules([]);
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    fetchSchedules();
+  }, [user]);
 
   const handleCreateSchedule = async () => {
     if (!selectedId) {
@@ -93,12 +243,13 @@ export default function ScheduleManagePage() {
         startAt,
         endAt,
       });
-      if (lockSchedule && data.data?.scheduleDayId) {
+      if (data.data?.scheduleDayId) {
         await api.put(`/schedules/${data.data.scheduleDayId}/confirm`, {
           isLock: true,
         });
       }
       setNotice('상영 일정이 등록되었습니다.');
+      await fetchSchedules();
     } catch (err: any) {
       setError(err.response?.data?.message || '상영 일정 등록에 실패했습니다.');
     } finally {
@@ -106,63 +257,259 @@ export default function ScheduleManagePage() {
     }
   };
 
+  const handleSavePublish = async () => {
+    if (!contentDetail) return;
+    try {
+      setStatusSaving(true);
+      setError('');
+      setNotice('');
+      await api.put(`/contents/${contentDetail.contentId}`, {
+        title: contentDetail.title,
+        description: contentDetail.description,
+        posterAssetId: contentDetail.posterAssetId,
+        videoSourceAssetId: contentDetail.videoSourceAssetId,
+        videoHlsMasterAssetId: contentDetail.videoHlsMasterAssetId,
+        status: publishStatus,
+      });
+      setNotice('공개 상태가 저장되었습니다.');
+    } catch (err: any) {
+      setError(err.response?.data?.message || '공개 상태 저장에 실패했습니다.');
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const handleEditSchedule = (schedule: ScheduleSearchResponse) => {
+    setEditingScheduleId(schedule.scheduleItemId);
+    setEditingStartAt(formatLocalDateTime(new Date(schedule.startAt)));
+    setEditingEndAt(formatLocalDateTime(new Date(schedule.endAt)));
+  };
+
+  const handleUpdateSchedule = async () => {
+    if (!editingScheduleId) return;
+    try {
+      setScheduleLoading(true);
+      await api.put(`/schedules/${editingScheduleId}`, {
+        startAt: editingStartAt,
+        endAt: editingEndAt,
+      });
+      setEditingScheduleId(null);
+      await fetchSchedules();
+    } catch (err: any) {
+      setScheduleError(err.response?.data?.message || '상영 일정 수정에 실패했습니다.');
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
+  const handleDeleteSchedule = async (scheduleItemId: number) => {
+    if (!window.confirm('해당 상영 일정을 삭제할까요?')) return;
+    try {
+      setScheduleLoading(true);
+      await api.delete(`/schedules/${scheduleItemId}`);
+      await fetchSchedules();
+    } catch (err: any) {
+      setScheduleError(err.response?.data?.message || '상영 일정 삭제에 실패했습니다.');
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
   return (
     <SubscriptionGate>
       <div className="mx-auto max-w-6xl px-6 py-12 text-white">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold">상영 스케줄 관리</h1>
-          <p className="text-sm text-white/60">
-            내 콘텐츠를 선택하고 상영 시간을 등록하세요.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <SectionHeader
+            title="감독 스튜디오"
+            subtitle="내 콘텐츠 관리와 상영 일정 편성을 한 곳에서 처리합니다."
+          />
+          <Button
+            variant="primary"
+            className="px-6 py-3 text-base"
+            onClick={() => router.push('/contents/create')}
+          >
+            새 영상 업로드
+          </Button>
         </div>
 
+      <Card className="mt-8 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold section-title">내 영상 관리</h2>
+            <p className="mt-1 text-sm text-white/60 section-subtitle">
+              업로드된 콘텐츠를 관리하고 상영 편성을 준비하세요.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setShowCalendar((prev) => !prev)}>
+              {showCalendar ? '내 영상 보기' : '캘린더 보기'}
+            </Button>
+          </div>
+        </div>
+        {loading && (
+          <div className="mt-6 rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/60">
+            콘텐츠를 불러오는 중입니다...
+          </div>
+        )}
+
+        {!loading && items.length === 0 && (
+          <div className="mt-6 rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+            아직 업로드한 콘텐츠가 없습니다. 업로드 후 스케줄을 등록해주세요.
+          </div>
+        )}
+
+        {!loading && !showCalendar && items.length > 0 && (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((item) => {
+              const isSelected = selectedId === item.contentId;
+              return (
+                <Card
+                  key={item.contentId}
+                  hover
+                  className={`hover-soft ${isSelected ? 'border-red-500/80 bg-red-500/15 ring-2 ring-red-500/50 shadow-[0_0_0_1px_rgba(239,68,68,0.45)]' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <Badge className={statusColor[item.status]}>{statusLabel[item.status]}</Badge>
+                    <span className="text-xs text-white/50">조회수 {item.totalView}</span>
+                  </div>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="h-12 w-20 overflow-hidden rounded-md border border-white/10 bg-black/40">
+                      {item.posterImage ? (
+                        <img src={item.posterImage} alt={item.title} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[10px] text-white/40">
+                          포스터 없음
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-base font-semibold truncate">{item.title}</h3>
+                      <p className="mt-1 text-xs text-white/60 line-clamp-2">{item.description}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-white/50">
+                    <span>길이 {item.durationMs ? `${Math.ceil(item.durationMs / 60000)}분` : '-'}</span>
+                    <span>작성자 {item.ownerNickname}</span>
+                    {isSelected && <Badge className="bg-red-500/20 text-red-100">편성 선택됨</Badge>}
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => setSelectedId(item.contentId)}>
+                      {isSelected ? '편성 선택됨' : '편성 선택'}
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => router.push(`/studio/contents/${item.contentId}/edit`)}>
+                      수정
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleDeleteContent(item.contentId, item.title)}
+                      disabled={deleting === item.contentId}
+                      className="border-red-500/40 text-red-200 hover:border-red-400"
+                    >
+                      {deleting === item.contentId ? '삭제 중...' : '삭제'}
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {!loading && showCalendar && (
+          <div className="mt-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm text-white/60">내 상영 일정 캘린더</div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="secondary" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}>
+                  이전달
+                </Button>
+                <span className="text-sm font-semibold">
+                  {calendarMonth.getFullYear()}년 {calendarMonth.getMonth() + 1}월
+                </span>
+                <Button size="sm" variant="secondary" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}>
+                  다음달
+                </Button>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-7 gap-2 text-xs text-white/60">
+              {['일', '월', '화', '수', '목', '금', '토'].map((label) => (
+                <div key={label} className="text-center">{label}</div>
+              ))}
+            </div>
+            <div className="mt-2 grid grid-cols-7 gap-2">
+              {monthDays.map((day) => {
+                const dateKey = toDateKey(day);
+                const list = scheduleByDate.get(dateKey) ?? [];
+                const isCurrentMonth = day.getMonth() === calendarMonth.getMonth();
+                return (
+                  <Card
+                    key={dateKey}
+                    variant="compact"
+                    className={`min-h-[120px] ${isCurrentMonth ? 'text-white' : 'text-white/40'}`}
+                  >
+                    <div className="text-right text-xs">{day.getDate()}</div>
+                    <div className="mt-2 space-y-1">
+                      {list.slice(0, 3).map((item) => (
+                        <div key={item.scheduleItemId} className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-[10px] text-white/70">
+                          {new Date(item.startAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} · {item.contentTitle}
+                        </div>
+                      ))}
+                      {list.length === 0 && <div className="text-[10px] text-white/40">일정 없음</div>}
+                      {list.length > 3 && <div className="text-[10px] text-white/40">+{list.length - 3}개 더</div>}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </Card>
+
       <div className="mt-8 grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <Card className="p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">내 콘텐츠</h2>
-            <a
-              href="/contents/create"
-              className="rounded-md border border-white/20 px-3 py-1.5 text-xs font-semibold text-white/80 hover:border-white/60 hover:text-white transition-colors"
-            >
-              새 영상 업로드
-            </a>
+            <h2 className="text-lg font-semibold section-title">편성할 콘텐츠 선택</h2>
+            <Badge>{items.length}개</Badge>
           </div>
 
-          {loading && (
-            <div className="mt-6 rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-              콘텐츠를 불러오는 중입니다...
-            </div>
-          )}
-
           {!loading && items.length === 0 && (
-            <div className="mt-6 rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-              아직 업로드한 콘텐츠가 없습니다. 업로드 후 스케줄을 등록해주세요.
-            </div>
+            <p className="mt-4 text-sm text-white/60">편성할 콘텐츠가 없습니다.</p>
           )}
 
           {!loading && items.length > 0 && (
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {items.map((item) => (
-                <button
-                  key={item.contentId}
-                  type="button"
-                  onClick={() => setSelectedId(item.contentId)}
-                  className={`rounded-xl border px-4 py-4 text-left transition-colors ${
-                    selectedId === item.contentId
-                      ? 'border-red-500/60 bg-red-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/30'
-                  }`}
-                >
-                  <h3 className="text-sm font-semibold">{item.title}</h3>
-                  <p className="mt-2 text-xs text-white/60 line-clamp-2">{item.description}</p>
-                </button>
-              ))}
+              {items.map((item) => {
+                const isSelected = selectedId === item.contentId;
+                return (
+                  <Card
+                    key={item.contentId}
+                    variant="compact"
+                    className={`text-left cursor-pointer hover-soft ${
+                      isSelected
+                        ? 'border-red-500/80 bg-red-500/15 ring-2 ring-red-500/50 shadow-[0_0_0_1px_rgba(239,68,68,0.45)]'
+                        : ''
+                    }`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedId(item.contentId)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') setSelectedId(item.contentId);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold">{item.title}</h3>
+                      {isSelected && <Badge className="bg-red-500/20 text-red-100">선택됨</Badge>}
+                    </div>
+                    <p className="mt-2 text-xs text-white/60 line-clamp-2">{item.description}</p>
+                  </Card>
+                );
+              })}
             </div>
           )}
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 className="text-lg font-semibold">상영 일정 등록</h2>
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold section-title">상영 일정 등록</h2>
           <p className="mt-2 text-xs text-white/60">
             영상 길이를 입력하면 종료 시간이 자동으로 계산됩니다.
           </p>
@@ -197,15 +544,29 @@ export default function ScheduleManagePage() {
                 className="w-full rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white/70"
               />
             </div>
-            <label className="flex items-center gap-2 text-sm text-white/70">
-              <input
-                type="checkbox"
-                checked={lockSchedule}
-                onChange={(e) => setLockSchedule(e.target.checked)}
-                className="h-4 w-4 rounded border-white/20 bg-white/10 text-red-500"
-              />
-              편성 확정(잠금)으로 저장
-            </label>
+            <p className="text-xs text-white/50">
+              상영 일정 저장 시 자동으로 편성 확정됩니다.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-1">공개 상태</label>
+              <select
+                value={publishStatus}
+                onChange={(e) => setPublishStatus(e.target.value as ContentEditResponse['status'])}
+                className="w-full rounded-md border border-white/10 bg-black/60 px-3 py-2 text-sm text-white"
+              >
+                <option value="PUBLISHED" className="bg-black text-white">공개</option>
+                <option value="DRAFT" className="bg-black text-white">임시 저장</option>
+                <option value="PRIVATE" className="bg-black text-white">비공개</option>
+              </select>
+              <Button
+                variant="secondary"
+                onClick={handleSavePublish}
+                disabled={statusSaving}
+                className="mt-3 w-full"
+              >
+                {statusSaving ? '저장 중...' : '공개 상태 저장'}
+              </Button>
+            </div>
           </div>
 
           {error && (
@@ -219,16 +580,99 @@ export default function ScheduleManagePage() {
             </div>
           )}
 
-          <button
-            type="button"
-            disabled={saving}
+          <Button
+            variant="primary"
             onClick={handleCreateSchedule}
-            className="mt-6 w-full rounded-md bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-500 disabled:bg-white/20 transition-colors"
+            disabled={saving}
+            className="mt-6 w-full py-3"
           >
             {saving ? '저장 중...' : '상영 일정 저장'}
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
+
+      <Card className="mt-10 p-6">
+        <h2 className="text-lg font-semibold section-title">콘텐츠별 상영 일정</h2>
+        <p className="mt-2 text-xs text-white/60">선택한 콘텐츠의 상영 일정을 확인하고 수정할 수 있습니다.</p>
+
+        {scheduleLoading && (
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/60">
+            상영 일정을 불러오는 중입니다...
+          </div>
+        )}
+        {!scheduleLoading && scheduleError && (
+          <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+            {scheduleError}
+          </div>
+        )}
+
+        {!scheduleLoading && !scheduleError && (
+          <div className="mt-4 space-y-4">
+            {schedules.filter((item) => item.contentId === selectedId).length === 0 && (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/60">
+                아직 등록된 상영 일정이 없습니다.
+              </div>
+            )}
+            {schedules
+              .filter((item) => item.contentId === selectedId)
+              .map((schedule) => (
+                <Card
+                  key={schedule.scheduleItemId}
+                  variant="compact"
+                  className="bg-black/40"
+                  hover={false}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-white/70">
+                    <span>
+                      {formatLocalDateTime(new Date(schedule.startAt)).replace('T', ' ')} ~{' '}
+                      {formatLocalDateTime(new Date(schedule.endAt)).replace('T', ' ')}
+                    </span>
+                    <Badge>{schedule.status}</Badge>
+                  </div>
+
+                  {editingScheduleId === schedule.scheduleItemId ? (
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <input
+                        type="datetime-local"
+                        value={editingStartAt}
+                        onChange={(e) => setEditingStartAt(e.target.value)}
+                        className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                      />
+                      <input
+                        type="datetime-local"
+                        value={editingEndAt}
+                        onChange={(e) => setEditingEndAt(e.target.value)}
+                        className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="primary" onClick={handleUpdateSchedule}>
+                          저장
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => setEditingScheduleId(null)}>
+                          취소
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 flex gap-2">
+                      <Button size="sm" variant="secondary" onClick={() => handleEditSchedule(schedule)}>
+                        시간 수정
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleDeleteSchedule(schedule.scheduleItemId)}
+                        className="border-red-500/40 text-red-200 hover:border-red-400"
+                      >
+                        삭제
+                      </Button>
+                    </div>
+                  )}
+                </Card>
+              ))}
+          </div>
+        )}
+      </Card>
     </div>
     </SubscriptionGate>
   );

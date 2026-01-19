@@ -1,5 +1,6 @@
 package com.example.cinema.api;
 
+import com.example.cinema.dto.common.ApiResponse;
 import com.example.cinema.entity.Content;
 import com.example.cinema.entity.MediaAsset;
 import com.example.cinema.entity.User;
@@ -16,6 +17,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
@@ -57,7 +59,7 @@ public class AssetUploadController {
     }
 
     @PostMapping("/presign")
-    public PresignRes presign(@RequestBody PresignReq req) {
+    public ApiResponse<PresignRes> presign(@RequestBody PresignReq req) {
         String key = switch (req.assetType()) {
             case POSTER_IMAGE -> {
                 if (req.contentId() == null) {
@@ -76,7 +78,7 @@ public class AssetUploadController {
         };
 
         URL url = presignService.presignPut(key, req.contentType());
-        return new PresignRes(key, url.toString());
+        return ApiResponse.success("presign issued", new PresignRes(key, url.toString()));
     }
 
     public record CompleteReq(
@@ -93,7 +95,8 @@ public class AssetUploadController {
     }
 
     @PostMapping("/complete")
-    public CompleteRes complete(@RequestBody CompleteReq req) {
+    @Transactional
+    public ApiResponse<CompleteRes> complete(@RequestBody CompleteReq req) {
         User owner = userRepository.findById(req.ownerUserId())
                 .orElseThrow(() -> new IllegalArgumentException("user not found: " + req.ownerUserId()));
 
@@ -112,11 +115,12 @@ public class AssetUploadController {
                     .orElseThrow(() -> new IllegalArgumentException("content not found: " + req.contentId()));
 
             MediaAsset poster = mediaAssetService.createAsset(
-                    owner, AssetType.POSTER_IMAGE, req.objectKey(), req.contentType(), visibility, head
+                    owner, AssetType.POSTER_IMAGE, req.objectKey(), req.contentType(), visibility, head, null
             );
             mediaAssetService.attachToContent(content, AssetType.POSTER_IMAGE, poster);
 
-            return new CompleteRes("OK", "https://" + cfDomain + "/" + req.objectKey(), null);
+            return ApiResponse.success("poster uploaded",
+                    new CompleteRes("OK", "https://" + cfDomain + "/" + req.objectKey(), null));
         }
 
         if (req.assetType() == AssetType.VIDEO_SOURCE) {
@@ -132,12 +136,13 @@ public class AssetUploadController {
                     .orElseThrow(() -> new IllegalArgumentException("content not found: " + req.contentId()));
 
             MediaAsset src = mediaAssetService.createAsset(
-                    owner, AssetType.VIDEO_SOURCE, req.objectKey(), req.contentType(), visibility, head
+                    owner, AssetType.VIDEO_SOURCE, req.objectKey(), req.contentType(), visibility, head, null
             );
             mediaAssetService.attachToContent(content, AssetType.VIDEO_SOURCE, src);
 
             String jobId = encodingJobService.start(req.contentId());
-            return new CompleteRes("PROCESSING", null, jobId);
+            return ApiResponse.success("encoding started",
+                    new CompleteRes("PROCESSING", null, jobId));
         }
 
         if (req.assetType() == AssetType.PROFILE_IMAGE) {
@@ -146,18 +151,20 @@ public class AssetUploadController {
             );
 
             mediaAssetService.createAsset(
-                    owner, AssetType.PROFILE_IMAGE, req.objectKey(), req.contentType(), visibility, head
+                    owner, AssetType.PROFILE_IMAGE, req.objectKey(), req.contentType(), visibility, head, null
             );
 
-            return new CompleteRes("OK", "https://" + cfDomain + "/" + req.objectKey(), null);
+            return ApiResponse.success("profile image uploaded",
+                    new CompleteRes("OK", "https://" + cfDomain + "/" + req.objectKey(), null));
         }
 
         throw new IllegalArgumentException("Unsupported complete type: " + req.assetType());
     }
 
     @PostMapping("/contents/{contentId}/encoding/retry")
-    public CompleteRes retry(@PathVariable long contentId) {
+    public ApiResponse<CompleteRes> retry(@PathVariable long contentId) {
         String jobId = encodingJobService.start(contentId);
-        return new CompleteRes("PROCESSING", null, jobId);
+        return ApiResponse.success("encoding retry started",
+                new CompleteRes("PROCESSING", null, jobId));
     }
 }

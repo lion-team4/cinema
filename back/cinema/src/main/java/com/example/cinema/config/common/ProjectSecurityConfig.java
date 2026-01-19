@@ -78,6 +78,8 @@ public class ProjectSecurityConfig {
                                 "/users/*/contents",
                                 "/contents/search",
                                 "/contents",
+                                "/contents/*",
+                                "/contents/reviews/search/**",
                                 "/media-assets/**",
                                 "/schedules/**"
                         ).permitAll()
@@ -103,7 +105,8 @@ public class ProjectSecurityConfig {
                         // 사용자
                         .requestMatchers(
                                 "/api/v1/users",
-                                "/users/me"
+                                "/users/me",
+                                "/users/me/**"
                         ).authenticated()
 
                         // 콘텐츠 관리

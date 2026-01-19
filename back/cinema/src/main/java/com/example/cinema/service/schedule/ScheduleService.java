@@ -11,7 +11,6 @@ import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.schedule.ScheduleDayRepository;
 import com.example.cinema.repository.schedule.ScheduleItemRepository;
-import com.example.cinema.repository.schedule.custom.ScheduleItemRepositoryCustom;
 import com.example.cinema.type.ContentStatus;
 import com.example.cinema.type.ScheduleStatus;
 import lombok.RequiredArgsConstructor;
@@ -96,6 +95,14 @@ public class ScheduleService {
         validateCreatorOverlap(item.getContent().getOwner().getUserId(), request.getStartAt(), request.getEndAt(), item.getScheduleItemId());
 
         item.update(request.getStartAt(), request.getEndAt());
+        return ScheduleItemResponse.from(item);
+    }
+
+    /**
+     * 특정 상영 일정 상세 조회
+     */
+    public ScheduleItemResponse getScheduleItemInfo(Long scheduleItemId) {
+        ScheduleItem item = getScheduleItem(scheduleItemId);
         return ScheduleItemResponse.from(item);
     }
 

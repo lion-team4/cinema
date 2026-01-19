@@ -41,7 +41,10 @@ aws:
   s3:
     bucket: lion-cinema-content-team4
   cloudfront:
-    domain: d3q8b3ts21eo3m.cloudfront.net
+    domain: https://d3q8b3ts21eo3m.cloudfront.net
+
+cloudfront:
+  domain: https://d3q8b3ts21eo3m.cloudfront.net
 
 ffmpeg:
   docker_image: jrottenberg/ffmpeg:6.1-alpine

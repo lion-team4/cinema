@@ -51,7 +51,7 @@ public class ContentOwnerViewReader extends AbstractPagingItemReader<ContentOwne
             ))
             .from(content)
             .join(content.owner, user)
-            .where(content.monthView.goe(10)) // 조회수 10 이상만 정산 대상
+            .where(content.monthView.goe(2)) // 조회수 10 이상만 정산 대상
             .groupBy(user.userId, user.email, user.nickname)
             .orderBy(user.userId.asc())
             .offset(getPage() * getPageSize())

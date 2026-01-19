@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { type ApiResponse, type ContentSearchResponse, type PageResponse, type ReviewListResponse } from '@/types';
 import { useAuthStore } from '@/lib/store';
@@ -10,8 +10,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import SectionHeader from '@/components/ui/SectionHeader';
 
-type SortField = 'CREATED' | 'UPDATED' | 'VIEW';
-type ScheduleStatus = 'WAITING' | 'PLAYING' | 'CLOSED' | 'ENDED';
+type ScheduleStatus = 'WAITING' | 'PLAYING' | 'ENDING' | 'CLOSED';
 
 type ScheduleSearchResponse = {
   scheduleItemId: number;
@@ -24,33 +23,16 @@ type ScheduleSearchResponse = {
   isLocked: boolean;
 };
 
-export default function SearchPage() {
-  const { user } = useAuthStore();
+export default function TheatersPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const keyword = searchParams.get('keyword') || '';
-  const contentIdParam = searchParams.get('contentId');
-  const reviewParam = searchParams.get('review') === '1';
-  const titleOnly = searchParams.get('title') !== 'false';
-  const sort = (searchParams.get('sort') as SortField) || 'CREATED';
-  const asc = searchParams.get('asc') === 'true';
-  const pageParam = Number(searchParams.get('page') || 0);
-  const sizeParam = Number(searchParams.get('size') || 20);
-  const tagParam = searchParams.get('tags') || '';
+  const { user } = useAuthStore();
 
-  const [query, setQuery] = useState(keyword);
-  const [sortField, setSortField] = useState<SortField>(sort);
-  const [isAsc, setIsAsc] = useState(asc);
-  const [searchTitleOnly, setSearchTitleOnly] = useState(titleOnly);
-  const [page, setPage] = useState(Number.isNaN(pageParam) ? 0 : pageParam);
-  const [size, setSize] = useState(Number.isNaN(sizeParam) ? 20 : sizeParam);
-  const [tagsInput, setTagsInput] = useState(tagParam);
-
+  const [contents, setContents] = useState<ContentSearchResponse[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleSearchResponse[]>([]);
+  const [viewerCounts, setViewerCounts] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState<ContentSearchResponse[]>([]);
   const [error, setError] = useState('');
-  const [totalPages, setTotalPages] = useState(0);
-  const [detailSchedules, setDetailSchedules] = useState<ScheduleSearchResponse[]>([]);
+
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
@@ -66,22 +48,17 @@ export default function SearchPage() {
     totalView: number | null;
     tags: string[];
   } | null>(null);
+  const [detailSchedules, setDetailSchedules] = useState<ScheduleSearchResponse[]>([]);
   const [detailReviews, setDetailReviews] = useState<ReviewListResponse[]>([]);
+  const [detailScheduleId, setDetailScheduleId] = useState<number | null>(null);
 
-  // 리뷰 작성 상태
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [reviewFilter, setReviewFilter] = useState<'ALL' | '5' | '4' | '3' | '2' | '1'>('ALL');
   const [reviewSort, setReviewSort] = useState<'RECENT' | 'RATING_DESC' | 'RATING_ASC'>('RECENT');
-  const [autoFocusReview, setAutoFocusReview] = useState(false);
-  const reviewTextareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const openedFromParamRef = useRef(false);
-  const [recentKeywords, setRecentKeywords] = useState<string[]>([]);
-  const [recentTags, setRecentTags] = useState<string[]>([]);
 
-  // 리뷰 수정 상태
   const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
   const [editingRating, setEditingRating] = useState(5);
   const [editingComment, setEditingComment] = useState('');
@@ -93,152 +70,27 @@ export default function SearchPage() {
       timeStyle: 'short',
     }).format(new Date(value));
 
-  useEffect(() => {
-    setQuery(keyword);
-    setSortField(sort);
-    setIsAsc(asc);
-    setSearchTitleOnly(titleOnly);
-    setPage(Number.isNaN(pageParam) ? 0 : pageParam);
-    setSize(Number.isNaN(sizeParam) ? 20 : sizeParam);
-    setTagsInput(tagParam);
-  }, [asc, keyword, pageParam, sizeParam, sort, tagParam, titleOnly]);
+  const normalizeUrl = (value: string | null) => {
+    if (!value) return null;
+    if (value.startsWith('https://https://')) return value.replace('https://https://', 'https://');
+    if (value.startsWith('http://http://')) return value.replace('http://http://', 'http://');
+    if (value.startsWith('http://') || value.startsWith('https://')) return value;
+    return `https://${value}`;
+  };
 
-  useEffect(() => {
-    if (keyword || tagParam || searchParams.get('sort') || searchParams.get('asc') || searchParams.get('title')) {
-      return;
-    }
-    const stored = localStorage.getItem('search-preferences');
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored) as {
-        sortField?: SortField;
-        isAsc?: boolean;
-        searchTitleOnly?: boolean;
-      };
-      if (parsed.sortField) setSortField(parsed.sortField);
-      if (typeof parsed.isAsc === 'boolean') setIsAsc(parsed.isAsc);
-      if (typeof parsed.searchTitleOnly === 'boolean') setSearchTitleOnly(parsed.searchTitleOnly);
-    } catch {
-      // ignore
-    }
-  }, [keyword, searchParams, tagParam]);
+  const fetchContents = async () => {
+    const { data } = await api.get<ApiResponse<PageResponse<ContentSearchResponse>>>('/contents', {
+      params: { page: 0, size: 200, status: 'PUBLISHED' },
+    });
+    return data.data?.content ?? [];
+  };
 
-  useEffect(() => {
-    localStorage.setItem(
-      'search-preferences',
-      JSON.stringify({ sortField, isAsc, searchTitleOnly })
-    );
-  }, [isAsc, searchTitleOnly, sortField]);
-
-  useEffect(() => {
-    const storedKeywords = localStorage.getItem('search-history');
-    const storedTags = localStorage.getItem('search-tags');
-    if (storedKeywords) {
-      try {
-        setRecentKeywords(JSON.parse(storedKeywords));
-      } catch {
-        // ignore
-      }
-    }
-    if (storedTags) {
-      try {
-        setRecentTags(JSON.parse(storedTags));
-      } catch {
-        // ignore
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (openedFromParamRef.current) return;
-    const raw = sessionStorage.getItem('search-detail-intent');
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as { contentId?: number; focusReview?: boolean };
-      if (!parsed.contentId) return;
-      openedFromParamRef.current = true;
-      sessionStorage.removeItem('search-detail-intent');
-      setAutoFocusReview(!!parsed.focusReview);
-      void openDetail(parsed.contentId);
-    } catch {
-      sessionStorage.removeItem('search-detail-intent');
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!contentIdParam) return;
-    if (openedFromParamRef.current) return;
-    const id = Number(contentIdParam);
-    if (Number.isNaN(id)) return;
-    openedFromParamRef.current = true;
-    setAutoFocusReview(reviewParam);
-    (async () => {
-      await openDetail(id);
-      const cleaned = new URLSearchParams(searchParams.toString());
-      cleaned.delete('contentId');
-      cleaned.delete('review');
-      const nextQuery = cleaned.toString();
-      router.replace(nextQuery ? `/search?${nextQuery}` : '/search');
-    })();
-  }, [contentIdParam, reviewParam, router, searchParams]);
-
-  const params = useMemo(() => {
-    const base: Record<string, string | number | boolean | string[]> = {
-      page,
-      size,
-      sort: sortField,
-      asc: isAsc,
-      title: searchTitleOnly,
-      status: 'PUBLISHED',
-    };
-    if (keyword) base.keyword = keyword;
-
-    const tagList = tagsInput
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-    if (tagList.length > 0) {
-      base.tags = tagList;
-      base.filter = true;
-      base.or = true;
-    }
-
-    return base;
-  }, [isAsc, keyword, page, searchTitleOnly, size, sortField, tagsInput]);
-
-  useEffect(() => {
-    const fetchContents = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const { data } = await api.get<ApiResponse<PageResponse<ContentSearchResponse>>>('/contents', {
-          params,
-        });
-        const list = data.data?.content ?? [];
-        const filtered = list.filter((item) => item.status === 'PUBLISHED')
-          .filter((item) => (user ? item.ownerNickname !== user.nickname : true));
-        setItems(filtered);
-        setTotalPages(data.data?.totalPages ?? 0);
-      } catch (err: any) {
-        setError(err.response?.data?.message || '콘텐츠를 불러오지 못했습니다.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchContents();
-  }, [params]);
-
-  const loadSchedules = async (contentId: number) => {
-      try {
-        const { data } = await api.get<ApiResponse<PageResponse<ScheduleSearchResponse>>>('/schedules', {
-        params: { page: 0, size: 200 },
-        });
-        const list = data.data?.content ?? [];
-      setDetailSchedules(list.filter((item) => item.contentId === contentId));
-    } catch {
-      setDetailSchedules([]);
-    }
+  const fetchSchedules = async () => {
+    const { data } = await api.get<ApiResponse<PageResponse<ScheduleSearchResponse>>>('/schedules', {
+      params: { page: 0, size: 200 },
+    });
+    const list = data.data?.content ?? [];
+    return list.filter((item) => item.status === 'WAITING' || item.status === 'PLAYING');
   };
 
   const loadReviews = async (contentId: number) => {
@@ -248,10 +100,62 @@ export default function SearchPage() {
         { params: { page: 0, size: 20 } }
       );
       setDetailReviews(reviews.data.data?.content ?? []);
-      } catch {
-      // ignore
+    } catch {
+      setDetailReviews([]);
     }
   };
+
+  const loadSchedulesForContent = async (contentId: number) => {
+    try {
+      const { data } = await api.get<ApiResponse<PageResponse<ScheduleSearchResponse>>>('/schedules', {
+        params: { page: 0, size: 200 },
+      });
+      const list = data.data?.content ?? [];
+      setDetailSchedules(list.filter((item) => item.contentId === contentId));
+    } catch {
+      setDetailSchedules([]);
+    }
+  };
+
+  const loadViewerCounts = async (list: ScheduleSearchResponse[]) => {
+    const counts = await Promise.all(
+      list.map(async (schedule) => {
+        try {
+          const res = await api.get<ApiResponse<number>>(`/theaters/${schedule.scheduleItemId}/viewers`);
+          return [schedule.scheduleItemId, res.data.data ?? 0] as const;
+        } catch {
+          return [schedule.scheduleItemId, 0] as const;
+        }
+      })
+    );
+    setViewerCounts(Object.fromEntries(counts));
+  };
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const [contentList, scheduleList] = await Promise.all([fetchContents(), fetchSchedules()]);
+        if (!active) return;
+        setContents(contentList);
+        setSchedules(scheduleList);
+        await loadViewerCounts(scheduleList);
+      } catch {
+        if (!active) return;
+        setError('상영관 정보를 불러오지 못했습니다.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    load();
+    const interval = window.setInterval(load, 10000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const openDetail = async (contentId: number, scheduleItemId?: number | null) => {
     try {
@@ -260,6 +164,7 @@ export default function SearchPage() {
       setDetailError('');
       setReviewError('');
       setEditingReviewId(null);
+      setDetailScheduleId(scheduleItemId ?? null);
       const { data } = await api.get<ApiResponse<{
         contentId: number;
         title: string;
@@ -273,13 +178,6 @@ export default function SearchPage() {
         tags: string[];
       }>>(`/contents/${contentId}`);
       const payload = data.data;
-      const normalizeUrl = (value: string | null) => {
-        if (!value) return null;
-        if (value.startsWith('https://https://')) return value.replace('https://https://', 'https://');
-        if (value.startsWith('http://http://')) return value.replace('http://http://', 'http://');
-        if (value.startsWith('http://') || value.startsWith('https://')) return value;
-        return `https://${value}`;
-      };
       setDetail(
         payload
           ? {
@@ -296,7 +194,7 @@ export default function SearchPage() {
             }
           : null
       );
-      await loadSchedules(contentId);
+      await loadSchedulesForContent(contentId);
       await loadReviews(contentId);
     } catch (err: any) {
       setDetailError(err.response?.data?.message || '상세 정보를 불러오지 못했습니다.');
@@ -314,8 +212,8 @@ export default function SearchPage() {
     setReviewComment('');
     setReviewRating(5);
     setEditingReviewId(null);
+    setDetailScheduleId(null);
     setDetailSchedules([]);
-    setAutoFocusReview(false);
   };
 
   const handleCreateReview = async () => {
@@ -345,32 +243,6 @@ export default function SearchPage() {
       setReviewSubmitting(false);
     }
   };
-
-  useEffect(() => {
-    if (!detailOpen || detailLoading || !autoFocusReview) return;
-    if (!reviewTextareaRef.current) return;
-    reviewTextareaRef.current.focus();
-  }, [autoFocusReview, detailLoading, detailOpen]);
-
-  const filteredReviews = useMemo(() => {
-    let list = detailReviews;
-    if (reviewFilter !== 'ALL') {
-      const rating = Number(reviewFilter);
-      list = list.filter((review) => review.rating === rating);
-    }
-    if (reviewSort === 'RATING_DESC') {
-      list = [...list].sort((a, b) => b.rating - a.rating);
-    } else if (reviewSort === 'RATING_ASC') {
-      list = [...list].sort((a, b) => a.rating - b.rating);
-    }
-    return list;
-  }, [detailReviews, reviewFilter, reviewSort]);
-
-  const reviewStats = useMemo(() => {
-    if (detailReviews.length === 0) return { average: 0, count: 0 };
-    const total = detailReviews.reduce((sum, review) => sum + review.rating, 0);
-    return { average: total / detailReviews.length, count: detailReviews.length };
-  }, [detailReviews]);
 
   const handleEditReview = (review: ReviewListResponse) => {
     setEditingReviewId(review.reviewId);
@@ -412,173 +284,106 @@ export default function SearchPage() {
     }
   };
 
-  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const next = new URLSearchParams();
-    if (query.trim()) next.set('keyword', query.trim());
-    if (!searchTitleOnly) next.set('title', 'false');
-    if (sortField !== 'CREATED') next.set('sort', sortField);
-    if (isAsc) next.set('asc', 'true');
-    if (tagsInput.trim()) next.set('tags', tagsInput.trim());
-    if (page !== 0) next.set('page', String(page));
-    if (size !== 20) next.set('size', String(size));
-    router.replace(`/search?${next.toString()}`);
-
-    const normalizedQuery = query.trim();
-    if (normalizedQuery) {
-      const updated = [normalizedQuery, ...recentKeywords.filter((item) => item !== normalizedQuery)].slice(0, 8);
-      setRecentKeywords(updated);
-      localStorage.setItem('search-history', JSON.stringify(updated));
+  const filteredReviews = useMemo(() => {
+    let list = detailReviews;
+    if (reviewFilter !== 'ALL') {
+      const rating = Number(reviewFilter);
+      list = list.filter((review) => review.rating === rating);
     }
-
-    const tagList = tagsInput
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-    if (tagList.length > 0) {
-      const merged = Array.from(new Set([...tagList, ...recentTags])).slice(0, 12);
-      setRecentTags(merged);
-      localStorage.setItem('search-tags', JSON.stringify(merged));
+    if (reviewSort === 'RATING_DESC') {
+      list = [...list].sort((a, b) => b.rating - a.rating);
+    } else if (reviewSort === 'RATING_ASC') {
+      list = [...list].sort((a, b) => a.rating - b.rating);
     }
+    return list;
+  }, [detailReviews, reviewFilter, reviewSort]);
+
+  const reviewStats = useMemo(() => {
+    if (detailReviews.length === 0) return { average: 0, count: 0 };
+    const total = detailReviews.reduce((sum, review) => sum + review.rating, 0);
+    return { average: total / detailReviews.length, count: detailReviews.length };
+  }, [detailReviews]);
+
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const playingSchedules = useMemo(() => schedules.filter((s) => s.status === 'PLAYING'), [schedules]);
+  const waitingSchedules = useMemo(() => schedules.filter((s) => s.status === 'WAITING'), [schedules]);
+  const topSchedules = useMemo(() => {
+    const scored = schedules.map((schedule) => ({
+      schedule,
+      viewers: viewerCounts[schedule.scheduleItemId] ?? 0,
+    }));
+    return scored.sort((a, b) => b.viewers - a.viewers).slice(0, 3);
+  }, [schedules, viewerCounts]);
+
+  const formatRemain = (target: string) => {
+    const diff = new Date(target).getTime() - now;
+    if (Number.isNaN(diff)) return '시간 정보 없음';
+    const minutes = Math.max(0, Math.floor(diff / 60000));
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) return `${hours}시간 ${mins}분`;
+    return `${mins}분`;
   };
 
-  const handlePageChange = (nextPage: number) => {
-    const safePage = Math.max(0, Math.min(nextPage, Math.max(totalPages - 1, 0)));
-    setPage(safePage);
-    const next = new URLSearchParams(searchParams.toString());
-    next.set('page', String(safePage));
-    router.replace(`/search?${next.toString()}`);
-  };
+  const renderScheduleCards = (list: ScheduleSearchResponse[], label: string) => (
+    <div className="mt-10">
+      <h2 className="text-lg font-semibold section-title">{label}</h2>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {list.map((schedule) => {
+          const content = contents.find((item) => item.contentId === schedule.contentId);
+          return (
+            <button
+              key={schedule.scheduleItemId}
+              type="button"
+              onClick={() => openDetail(schedule.contentId, schedule.scheduleItemId)}
+              className="rounded-xl border border-white/10 bg-white/5 p-4 text-left transition-colors hover-soft"
+            >
+              <div className="aspect-video w-full overflow-hidden rounded-lg border border-white/10 bg-black/40">
+                {content?.posterImage ? (
+                  <img
+                    src={content.posterImage}
+                    alt={schedule.contentTitle}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs text-white/50">
+                    포스터 없음
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-white/60">
+                <Badge>{schedule.status === 'PLAYING' ? '상영 중' : '대기 중'}</Badge>
+                <span>동접 {viewerCounts[schedule.scheduleItemId] ?? 0}명</span>
+              </div>
+              <div className="mt-1 text-xs text-white/50">
+                {schedule.status === 'PLAYING'
+                  ? `종료까지 ${formatRemain(schedule.endAt)}`
+                  : `${formatKst(schedule.startAt)} · ${formatRemain(schedule.startAt)} 후 시작`}
+              </div>
+              <h3 className="mt-2 text-lg font-semibold">{schedule.contentTitle}</h3>
+              <p className="mt-1 text-xs text-white/60">감독 {schedule.creatorNickname}</p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12 text-white">
       <SectionHeader
-        title="검색"
-        subtitle={keyword ? `"${keyword}" 검색 결과` : '전체 콘텐츠'}
+        title="상영관"
+        subtitle="현재 상영 중이거나 대기 중인 영화 목록입니다."
       />
-
-      <Card className="mt-6">
-        <form onSubmit={handleSearch}>
-        <div className="grid gap-4 lg:grid-cols-[2fr_2fr_auto] lg:items-center">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="제목 또는 닉네임으로 검색"
-            className="rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:ring-red-500 focus:border-red-500"
-          />
-          <input
-            value={tagsInput}
-            onChange={(e) => setTagsInput(e.target.value)}
-            placeholder="태그 검색 (쉼표로 구분)"
-            className="rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:ring-red-500 focus:border-red-500"
-          />
-          <Button type="submit" variant="primary" className="px-5 py-2">
-            검색
-          </Button>
-        </div>
-
-        {(recentKeywords.length > 0 || recentTags.length > 0) && (
-          <div className="mt-4 grid gap-3 text-xs text-white/70">
-            {recentKeywords.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-white/50 section-subtitle">최근 검색</span>
-                {recentKeywords.map((item) => (
-                  <Button
-                    key={item}
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      setQuery(item);
-                      const next = new URLSearchParams(searchParams.toString());
-                      next.set('keyword', item);
-                      router.replace(`/search?${next.toString()}`);
-                    }}
-                    className="badge"
-                  >
-                    {item}
-                  </Button>
-                ))}
-              </div>
-            )}
-            {recentTags.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-white/50 section-subtitle">추천 태그</span>
-                {recentTags.map((tag) => (
-                  <Button
-                    key={tag}
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      const nextValue = tagsInput ? `${tagsInput}, ${tag}` : tag;
-                      setTagsInput(nextValue);
-                    }}
-                    className="badge"
-                  >
-                    #{tag}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-white/70">
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/50 px-2 py-1">
-            {[
-              { value: 'CREATED', label: '최신순' },
-              { value: 'VIEW', label: '조회수순' },
-              { value: 'UPDATED', label: '업데이트순' },
-            ].map((option) => (
-              <Button
-                key={option.value}
-                size="sm"
-                variant="secondary"
-                onClick={() => setSortField(option.value as SortField)}
-                className={
-                  sortField === option.value
-                    ? 'bg-white/10 text-white border-white/40'
-                    : 'text-white/60 hover:text-white'
-                }
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={isAsc}
-              onChange={(e) => setIsAsc(e.target.checked)}
-              className="h-4 w-4 rounded border-white/20 bg-white/10 text-red-500"
-            />
-            오름차순
-          </label>
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-2 py-1">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setSearchTitleOnly(true)}
-              className={searchTitleOnly ? 'bg-red-600 text-white' : 'text-white/60 hover:text-white'}
-            >
-              제목
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setSearchTitleOnly(false)}
-              className={!searchTitleOnly ? 'bg-red-600 text-white' : 'text-white/60 hover:text-white'}
-            >
-              감독명
-            </Button>
-          </div>
-        </div>
-      </form>
-      </Card>
-
 
       {loading && (
         <div className="mt-10 rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/60">
-          콘텐츠를 불러오는 중입니다...
+          상영관 정보를 불러오는 중입니다...
         </div>
       )}
 
@@ -588,71 +393,50 @@ export default function SearchPage() {
         </div>
       )}
 
-      {!loading && !error && items.length === 0 && (
-        <div className="mt-10 rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/70">
-          콘텐츠가 없습니다. 새로운 작품을 업로드하거나 곧 공개될 콘텐츠를 기다려주세요.
-        </div>
-      )}
-
-      {!loading && !error && items.length > 0 && (
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => (
-            <Card
-              key={item.contentId}
-              variant="compact"
-              className="text-left cursor-pointer hover-soft"
-              role="button"
-              tabIndex={0}
-              onClick={() => openDetail(item.contentId)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') openDetail(item.contentId);
-              }}
-            >
-              <div className="aspect-video w-full overflow-hidden rounded-lg border border-white/10 bg-black/40">
-                {item.posterImage ? (
-                  <img
-                    src={item.posterImage}
-                    alt={item.title}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xs text-white/50">
-                    포스터 없음
+      {!loading && !error && topSchedules.length > 0 && (
+        <Card className="mt-8 p-6">
+          <h2 className="text-lg font-semibold section-title">인기 상영관 TOP</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {topSchedules.map(({ schedule, viewers }) => {
+              const content = contents.find((item) => item.contentId === schedule.contentId);
+              return (
+                <button
+                  key={schedule.scheduleItemId}
+                  type="button"
+                  onClick={() => openDetail(schedule.contentId, schedule.scheduleItemId)}
+                  className="rounded-xl border border-white/10 bg-black/40 p-4 text-left transition-colors hover-soft"
+                >
+                  <div className="aspect-video w-full overflow-hidden rounded-lg border border-white/10 bg-black/40">
+                    {content?.posterImage ? (
+                      <img
+                        src={content.posterImage}
+                        alt={schedule.contentTitle}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-xs text-white/50">
+                        포스터 없음
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <h3 className="mt-3 text-lg font-semibold">{item.title}</h3>
-              <p className="mt-1 text-xs text-white/60">감독 {item.ownerNickname}</p>
-              <p className="mt-2 text-sm text-white/70 line-clamp-3">{item.description}</p>
-              <div className="mt-3 text-xs text-white/50">
-                조회수 {item.totalView} · {item.durationMs ? `${Math.ceil(item.durationMs / 60000)}분` : '길이 정보 없음'}
-              </div>
-            </Card>
-          ))}
-        </div>
+                  <div className="mt-3 flex items-center justify-between text-xs text-white/60">
+                    <Badge>{schedule.status === 'PLAYING' ? '상영 중' : '대기 중'}</Badge>
+                    <span>동접 {viewers}명</span>
+                  </div>
+                  <h3 className="mt-2 text-lg font-semibold">{schedule.contentTitle}</h3>
+                  <p className="mt-1 text-xs text-white/60">감독 {schedule.creatorNickname}</p>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
       )}
 
-      {!loading && !error && totalPages > 1 && (
-        <div className="mt-10 flex items-center justify-center gap-4 text-sm text-white/70">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page <= 0}
-          >
-            이전
-          </Button>
-          <span>
-            {page + 1} / {totalPages}
-          </span>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => handlePageChange(page + 1)}
-            disabled={page >= totalPages - 1}
-          >
-            다음
-          </Button>
+      {!loading && !error && playingSchedules.length > 0 && renderScheduleCards(playingSchedules, '상영 중')}
+      {!loading && !error && waitingSchedules.length > 0 && renderScheduleCards(waitingSchedules, '대기 중')}
+      {!loading && !error && playingSchedules.length === 0 && waitingSchedules.length === 0 && (
+        <div className="mt-10 rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+          현재 상영 중인 콘텐츠가 없습니다.
         </div>
       )}
 
@@ -686,7 +470,7 @@ export default function SearchPage() {
             {!detailLoading && !detailError && detail && (
               <>
                 <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_2fr]">
-                  <Card variant="compact">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3 card">
                     {detail.posterUrl ? (
                       <img
                         src={detail.posterUrl}
@@ -698,7 +482,7 @@ export default function SearchPage() {
                         포스터 없음
                       </div>
                     )}
-                  </Card>
+                  </div>
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-2xl font-bold">{detail.title}</h3>
@@ -718,7 +502,7 @@ export default function SearchPage() {
                         : '영상 길이 정보 없음'}
                     </div>
                     <div className="text-xs text-white/60">
-                      총 조회수 {detail.totalView ?? items.find((item) => item.contentId === detail.contentId)?.totalView ?? 0}
+                      총 조회수 {detail.totalView ?? contents.find((item) => item.contentId === detail.contentId)?.totalView ?? 0}
                     </div>
                     <div className="text-sm text-white/80">
                       평균 평점 {reviewStats.average ? reviewStats.average.toFixed(1) : '0.0'} · 리뷰 {reviewStats.count}개
@@ -726,7 +510,7 @@ export default function SearchPage() {
                   </div>
                 </div>
 
-                <Card className="mt-6 p-4" variant="solid">
+                <div className="mt-6 rounded-lg border border-white/10 bg-white/5 p-4 card">
                   <h3 className="text-sm font-semibold section-title">상영 일정</h3>
                   {detailSchedules.filter((s) => s.status === 'WAITING' || s.status === 'PLAYING').length === 0 ? (
                     <p className="mt-2 text-sm text-white/60">상영 예정이 없습니다.</p>
@@ -740,8 +524,8 @@ export default function SearchPage() {
                               {schedule.status === 'PLAYING' ? '상영 중' : '대기 중'} · {formatKst(schedule.startAt)}
                             </span>
                             <Button
-                              size="sm"
                               variant="primary"
+                              size="sm"
                               onClick={() => router.push(`/watch/${schedule.scheduleItemId}`)}
                             >
                               입장하기
@@ -750,7 +534,7 @@ export default function SearchPage() {
                         ))}
                     </div>
                   )}
-                </Card>
+                </div>
 
                 {/* 리뷰 섹션 */}
                 <div className="mt-6">
@@ -808,9 +592,8 @@ export default function SearchPage() {
                     </div>
                   </div>
 
-                  {/* 리뷰 작성 폼 */}
                   {user && (
-                    <Card className="mt-4 p-4" variant="solid">
+                    <Card className="mt-4 p-4">
                       <div className="flex items-center gap-3 mb-3">
                         <label className="text-sm text-white/70">별점</label>
                         <select
@@ -824,7 +607,6 @@ export default function SearchPage() {
                         </select>
                       </div>
                       <textarea
-                        ref={reviewTextareaRef}
                         value={reviewComment}
                         onChange={(e) => setReviewComment(e.target.value)}
                         rows={2}
@@ -856,7 +638,7 @@ export default function SearchPage() {
                       <p className="text-sm text-white/60">아직 리뷰가 없습니다.</p>
                     )}
                     {filteredReviews.map((review) => (
-                      <Card key={review.reviewId} className="p-3 text-sm" variant="compact">
+                      <Card key={review.reviewId} className="p-3 text-sm">
                         <div className="flex items-center justify-between text-white/60">
                           <span>{review.writerNickname}</span>
                           <span>{new Date(review.createdAt).toLocaleString()}</span>

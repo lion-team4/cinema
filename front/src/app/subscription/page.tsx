@@ -63,6 +63,7 @@ export default function SubscriptionPage() {
   const { user, hasHydrated } = useAuthStore();
   const router = useRouter();
   const tossPaymentsRef = useRef<TossPaymentsInstance | null>(null);
+  const autoStartRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [widgetError, setWidgetError] = useState('');
   const [notice, setNotice] = useState('');
@@ -72,22 +73,21 @@ export default function SubscriptionPage() {
       return;
     }
 
-    if (!user) {
-      router.push('/login?redirect=/subscription');
-      return;
-    }
-
     const initWidget = async () => {
       try {
         if (!clientKey) {
           setWidgetError('결제 위젯을 시작할 수 없습니다. 관리자에게 문의해주세요.');
           return;
         }
+        if (!user) {
+          setLoading(false);
+          return;
+        }
         try {
           const { data } = await api.get<ApiResponse<SubscriptionResponse>>('/users/subscriptions');
           const existing = data.data;
           if (existing?.status === 'ACTIVE') {
-            router.replace('/subscription/manage');
+            router.replace('/search');
             return;
           }
         } catch (err: any) {
@@ -108,13 +108,27 @@ export default function SubscriptionPage() {
     initWidget();
   }, [user, hasHydrated, router]);
 
+  useEffect(() => {
+    if (!hasHydrated || !user) return;
+    if (autoStartRef.current) return;
+    const autoStart = sessionStorage.getItem('auto-subscribe');
+    if (!autoStart) return;
+    autoStartRef.current = true;
+    sessionStorage.removeItem('auto-subscribe');
+    void handleSubscription();
+  }, [hasHydrated, user]);
+
   const handleSubscription = async () => {
     setNotice('');
     if (!clientKey) {
       setWidgetError('결제 위젯을 시작할 수 없습니다. 관리자에게 문의해주세요.');
       return;
     }
-    if (!user) return;
+    if (!user) {
+      sessionStorage.setItem('auto-subscribe', '1');
+      router.push('/login?redirect=/subscription');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -122,10 +136,7 @@ export default function SubscriptionPage() {
         const { data } = await api.get<ApiResponse<SubscriptionResponse>>('/users/subscriptions');
         const existing = data.data;
         if (existing?.status === 'ACTIVE') {
-          setNotice('이미 구독 중입니다. 구독 관리 페이지로 이동합니다.');
-          setTimeout(() => {
-            router.push('/subscription/manage');
-          }, 1200);
+          router.push('/search');
           return;
         }
       } catch (err: any) {
@@ -190,12 +201,6 @@ export default function SubscriptionPage() {
             <li>✓ 광고 없는 재생</li>
           </ul>
 
-          <a
-            href="/subscription/manage"
-            className="mt-6 inline-flex w-full items-center justify-center rounded-xl border border-white/20 py-3 text-sm font-semibold text-white/80 hover:border-white/60 hover:text-white transition-colors"
-          >
-            내 구독 관리
-          </a>
         </div>
       </div>
 
