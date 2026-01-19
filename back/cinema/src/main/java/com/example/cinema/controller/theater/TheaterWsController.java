@@ -1,16 +1,16 @@
 package com.example.cinema.controller.theater;
 
-import com.example.cinema.config.common.CustomUserDetails;
 import com.example.cinema.dto.theater.ChatRequest;
 import com.example.cinema.dto.theater.ChatResponse;
 import com.example.cinema.dto.theater.PlaybackStateResponse;
+import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.service.theater.TheaterSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.*;
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
+import java.security.Principal;
 /**
  * 영상 동시 송출 WebSocket 컨트롤러
  * - 재생 제어 없음 (스케줄 시작 시간 기준 자동 재생)
@@ -22,6 +22,7 @@ import org.springframework.stereotype.Controller;
 public class TheaterWsController {
 
     private final TheaterSyncService syncService;
+    private final UserRepository userRepository;
 
     /**
      * 재생 상태 구독
@@ -43,9 +44,12 @@ public class TheaterWsController {
     public ChatResponse sendChat(
             @DestinationVariable long scheduleId,
             ChatRequest request,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            Principal principal) {
 
         // 인증된 사용자의 닉네임 사용 (이메일 노출 방지)
-        return ChatResponse.from(scheduleId, request.getMessage(), userDetails.getUser().getNickname());
+        String nickname = userRepository.findByEmail(principal.getName())
+                .map(user -> user.getNickname())
+                .orElse("익명");
+        return ChatResponse.from(scheduleId, request.getMessage(), nickname);
     }
 }

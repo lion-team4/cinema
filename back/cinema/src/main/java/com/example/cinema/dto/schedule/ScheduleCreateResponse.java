@@ -7,5 +7,6 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ScheduleCreateResponse {
     private Long scheduleItemId;
+    private Long scheduleDayId;
 }
 

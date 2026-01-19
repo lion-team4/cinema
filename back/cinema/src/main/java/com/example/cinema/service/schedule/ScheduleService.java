@@ -82,7 +82,7 @@ public class ScheduleService {
                 .status(ScheduleStatus.CLOSED)
                 .build());
 
-        return new ScheduleCreateResponse(scheduleItem.getScheduleItemId());
+        return new ScheduleCreateResponse(scheduleItem.getScheduleItemId(), scheduleDay.getScheduleDayId());
     }
 
     /**

@@ -68,6 +68,7 @@ public class ProjectSecurityConfig {
                         .requestMatchers(
                                 "/auth/login",
                                 "/auth/signup",
+                                "/auth/reissue",
                                 "/error"
                         ).permitAll()
 
