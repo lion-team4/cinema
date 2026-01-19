@@ -23,6 +23,7 @@ export default function ScheduleManagePage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [startAt, setStartAt] = useState('');
   const [durationMinutes, setDurationMinutes] = useState<number>(90);
+  const [lockSchedule, setLockSchedule] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
 
@@ -86,12 +87,17 @@ export default function ScheduleManagePage() {
       setError('');
       setNotice('');
       const scheduleDate = startAt.split('T')[0];
-      await api.post('/schedules', {
+      const { data } = await api.post<ApiResponse<{ scheduleItemId: number; scheduleDayId: number }>>('/schedules', {
         contentId: selectedId,
         scheduleDate,
         startAt,
         endAt,
       });
+      if (lockSchedule && data.data?.scheduleDayId) {
+        await api.put(`/schedules/${data.data.scheduleDayId}/confirm`, {
+          isLock: true,
+        });
+      }
       setNotice('상영 일정이 등록되었습니다.');
     } catch (err: any) {
       setError(err.response?.data?.message || '상영 일정 등록에 실패했습니다.');
@@ -191,6 +197,15 @@ export default function ScheduleManagePage() {
                 className="w-full rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white/70"
               />
             </div>
+            <label className="flex items-center gap-2 text-sm text-white/70">
+              <input
+                type="checkbox"
+                checked={lockSchedule}
+                onChange={(e) => setLockSchedule(e.target.checked)}
+                className="h-4 w-4 rounded border-white/20 bg-white/10 text-red-500"
+              />
+              편성 확정(잠금)으로 저장
+            </label>
           </div>
 
           {error && (

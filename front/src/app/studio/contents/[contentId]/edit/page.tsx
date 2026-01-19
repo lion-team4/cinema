@@ -35,6 +35,7 @@ export default function ContentEditPage() {
   const [progress, setProgress] = useState(0);
 
   const isAssetPending = detail?.videoSourceAssetId == null;
+  const hasAssets = detail?.videoSourceAssetId != null;
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -125,8 +126,8 @@ export default function ContentEditPage() {
 
   const handleUploadAssets = async () => {
     if (!detail) return;
-    if (!file) {
-      setError('업로드할 영상 파일을 선택해주세요.');
+    if (!file && !posterFile) {
+      setError('업로드할 포스터 또는 영상 파일을 선택해주세요.');
       return;
     }
     setSaving(true);
@@ -134,9 +135,6 @@ export default function ContentEditPage() {
     setNotice('');
 
     try {
-      const fileName = file.name;
-      const contentType = file.type;
-
       if (posterFile) {
         const posterPresign = await api.post<ApiResponse<{ uploadUrl: string; objectKey: string }>>(
           '/api/assets/presign',
@@ -164,39 +162,72 @@ export default function ContentEditPage() {
         });
       }
 
-      const { data: presignData } = await api.post<ApiResponse<{ uploadUrl: string; objectKey: string }>>(
-        '/api/assets/presign',
-        {
-          fileName,
-          contentType,
+      if (file) {
+        const fileName = file.name;
+        const contentType = file.type;
+
+        const { data: presignData } = await api.post<ApiResponse<{ uploadUrl: string; objectKey: string }>>(
+          '/api/assets/presign',
+          {
+            fileName,
+            contentType,
+            assetType: 'VIDEO_SOURCE',
+            ownerUserId: user?.userId,
+            contentId: detail.contentId,
+          }
+        );
+
+        const { uploadUrl, objectKey } = presignData.data;
+
+        await axios.put(uploadUrl, file, {
+          headers: { 'Content-Type': contentType },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+            setProgress(percentCompleted);
+          },
+        });
+
+        await api.post('/api/assets/complete', {
           assetType: 'VIDEO_SOURCE',
           ownerUserId: user?.userId,
           contentId: detail.contentId,
-        }
-      );
-
-      const { uploadUrl, objectKey } = presignData.data;
-
-      await axios.put(uploadUrl, file, {
-        headers: { 'Content-Type': contentType },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-          setProgress(percentCompleted);
-        },
-      });
-
-      await api.post('/api/assets/complete', {
-        assetType: 'VIDEO_SOURCE',
-        ownerUserId: user?.userId,
-        contentId: detail.contentId,
-        objectKey,
-        contentType,
-      });
+          objectKey,
+          contentType,
+        });
+      }
 
       setNotice('업로드가 완료되었습니다.');
       await refreshDetail();
     } catch (err: any) {
       setError(err.response?.data?.message || '업로드에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!detail) return;
+    if (!hasAssets) {
+      setError('영상 업로드가 완료된 콘텐츠만 공개할 수 있습니다.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError('');
+      setNotice('');
+      await api.put(`/contents/${detail.contentId}`, {
+        title,
+        description,
+        posterAssetId: detail.posterAssetId,
+        videoSourceAssetId: detail.videoSourceAssetId,
+        videoHlsMasterAssetId: detail.videoHlsMasterAssetId,
+        status: 'PUBLISHED',
+      });
+      setStatus('PUBLISHED');
+      setNotice('공개 상태로 변경되었습니다.');
+    } catch (err: any) {
+      setError(err.response?.data?.message || '공개 처리에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -226,133 +257,135 @@ export default function ContentEditPage() {
         </div>
       )}
 
-      {!loading && detail && isAssetPending && (
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6">
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-            2단계: 포스터와 영상 파일을 업로드하세요.
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-white/80 mb-1">포스터 이미지</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setPosterFile(e.target.files?.[0] || null)}
-              className="w-full px-4 py-2 border border-dashed rounded-md cursor-pointer border-white/20 bg-white/5 text-white"
-            />
-            <p className="text-xs text-white/50 mt-1">권장: 2MB 이하의 JPG/PNG.</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white/80 mb-1">영상 파일 (MP4)</label>
-            <input
-              type="file"
-              accept="video/mp4"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="w-full px-4 py-2 border border-dashed rounded-md cursor-pointer border-white/20 bg-white/5 text-white"
-            />
-            <p className="text-xs text-white/50 mt-1">
-              권장: H.264 MP4, 최대 2GB.
-            </p>
-          </div>
-
-          {saving && (
-            <div className="space-y-2">
-              <div className="w-full bg-white/10 rounded-full h-2.5">
-                <div
-                  className="bg-red-600 h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-sm text-center font-medium text-red-400">{progress}% 업로드됨</p>
-            </div>
-          )}
-
-          {notice && (
-            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-              {notice}
-            </div>
-          )}
-          {error && (
-            <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={handleUploadAssets}
-            disabled={saving}
-            className="w-full rounded-md bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-500 disabled:bg-white/20 transition-colors"
+      {!loading && detail && (
+        <div className="mt-8 space-y-6">
+          <form
+            onSubmit={handleSave}
+            className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6"
           >
-            {saving ? '업로드 중...' : '업로드 시작'}
-          </button>
+            <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+              {isAssetPending ? '1단계: 기본 정보를 수정하세요.' : '1단계: 기본 정보를 수정하세요.'}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-1">제목</label>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:ring-red-500 focus:border-red-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-1">설명</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={5}
+                className="w-full rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:ring-red-500 focus:border-red-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-1">공개 상태</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as ContentEditResponse['status'])}
+                className="w-full rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white focus:ring-red-500 focus:border-red-500"
+              >
+                <option value="PUBLISHED">공개</option>
+                <option value="DRAFT">임시 저장</option>
+                <option value="PRIVATE">비공개</option>
+              </select>
+            </div>
+
+            {notice && (
+              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                {notice}
+              </div>
+            )}
+            {error && (
+              <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {error}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 rounded-md bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-500 disabled:bg-white/20 transition-colors"
+              >
+                {saving ? '저장 중...' : '1단계 저장'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={saving}
+                className="flex-1 rounded-md border border-red-500/40 py-3 text-sm font-semibold text-red-200 hover:border-red-400 hover:text-red-100 disabled:opacity-60 transition-colors"
+              >
+                콘텐츠 삭제
+              </button>
+            </div>
+          </form>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6">
+            <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+              2단계: 포스터와 영상 파일을 업로드하세요.
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-1">포스터 이미지</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPosterFile(e.target.files?.[0] || null)}
+                className="w-full px-4 py-2 border border-dashed rounded-md cursor-pointer border-white/20 bg-white/5 text-white"
+              />
+              <p className="text-xs text-white/50 mt-1">권장: 2MB 이하의 JPG/PNG.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-1">영상 파일 (MP4)</label>
+              <input
+                type="file"
+                accept="video/mp4"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="w-full px-4 py-2 border border-dashed rounded-md cursor-pointer border-white/20 bg-white/5 text-white"
+              />
+              <p className="text-xs text-white/50 mt-1">
+                권장: H.264 MP4, 최대 2GB.
+              </p>
+            </div>
+
+            {saving && (
+              <div className="space-y-2">
+                <div className="w-full bg-white/10 rounded-full h-2.5">
+                  <div
+                    className="bg-red-600 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <p className="text-sm text-center font-medium text-red-400">{progress}% 업로드됨</p>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={handleUploadAssets}
+                disabled={saving}
+                className="flex-1 rounded-md bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-500 disabled:bg-white/20 transition-colors"
+              >
+                {saving ? '업로드 중...' : '2단계 업로드'}
+              </button>
+              <button
+                type="button"
+                onClick={handlePublish}
+                disabled={saving || !hasAssets}
+                className="flex-1 rounded-md border border-white/20 py-3 text-sm font-semibold text-white/80 hover:border-white/60 hover:text-white disabled:opacity-50 transition-colors"
+              >
+                공개로 전환
+              </button>
+            </div>
+          </div>
         </div>
-      )}
-
-      {!loading && detail && !isAssetPending && (
-        <form
-          onSubmit={handleSave}
-          className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6"
-        >
-          <div>
-            <label className="block text-sm font-medium text-white/80 mb-1">제목</label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:ring-red-500 focus:border-red-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-white/80 mb-1">설명</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={5}
-              className="w-full rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:ring-red-500 focus:border-red-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-white/80 mb-1">공개 상태</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as ContentEditResponse['status'])}
-              className="w-full rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white focus:ring-red-500 focus:border-red-500"
-            >
-              <option value="PUBLISHED">공개</option>
-              <option value="DRAFT">임시 저장</option>
-              <option value="PRIVATE">비공개</option>
-            </select>
-          </div>
-
-          {notice && (
-            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-              {notice}
-            </div>
-          )}
-          {error && (
-            <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              {error}
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 rounded-md bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-500 disabled:bg-white/20 transition-colors"
-            >
-              {saving ? '저장 중...' : '변경사항 저장'}
-            </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={saving}
-              className="flex-1 rounded-md border border-red-500/40 py-3 text-sm font-semibold text-red-200 hover:border-red-400 hover:text-red-100 disabled:opacity-60 transition-colors"
-            >
-              콘텐츠 삭제
-            </button>
-          </div>
-        </form>
       )}
     </div>
   );
