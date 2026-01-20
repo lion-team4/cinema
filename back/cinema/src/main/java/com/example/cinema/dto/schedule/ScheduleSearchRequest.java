@@ -16,4 +16,5 @@ public class ScheduleSearchRequest {
     private LocalDate startDate;
     private LocalDate endDate;
     private String nickname;
+    private Boolean lockedOnly = true;
 }

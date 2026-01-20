@@ -118,6 +118,13 @@ export default function ScheduleManagePage() {
   }, [schedules]);
 
   const selectedSchedules = scheduleByDate.get(selectedDate) ?? [];
+  const sortedSelectedSchedules = useMemo(() => {
+    return [...selectedSchedules].sort((a, b) => {
+      const titleCompare = a.contentTitle.localeCompare(b.contentTitle);
+      if (titleCompare !== 0) return titleCompare;
+      return new Date(a.startAt).getTime() - new Date(b.startAt).getTime();
+    });
+  }, [selectedSchedules]);
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -209,7 +216,7 @@ export default function ScheduleManagePage() {
       setScheduleLoading(true);
       setScheduleError('');
       const { data } = await api.get<ApiResponse<PageResponse<ScheduleSearchResponse>>>('/schedules', {
-        params: { page: 0, size: 200, nickname: user.nickname },
+        params: { page: 0, size: 200, nickname: user.nickname, lockedOnly: false },
       });
       const list = data.data?.content ?? [];
       setSchedules(list);
@@ -684,7 +691,7 @@ export default function ScheduleManagePage() {
                 선택한 날짜에 상영 일정이 없습니다.
               </div>
             )}
-            {selectedSchedules.map((item) => (
+            {sortedSelectedSchedules.map((item) => (
               <Card key={item.scheduleItemId} className="p-4" variant="compact">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -705,7 +712,7 @@ export default function ScheduleManagePage() {
                       onClick={() => handleConfirmDay(item.scheduleDayId)}
                       disabled={item.isLocked || lockingDayId === item.scheduleDayId}
                     >
-                      {lockingDayId === item.scheduleDayId ? '확정 중...' : '상영 확정'}
+                      {lockingDayId === item.scheduleDayId ? '확정 중...' : '해당 날짜 확정'}
                     </Button>
                   </div>
                 </div>

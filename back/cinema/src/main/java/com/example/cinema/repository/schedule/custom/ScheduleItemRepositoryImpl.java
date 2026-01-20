@@ -31,8 +31,10 @@ public class ScheduleItemRepositoryImpl implements ScheduleItemRepositoryCustom 
 
         BooleanBuilder builder = new BooleanBuilder();
 
-        // 1. 무조건 락된(확정된) 스케줄만 조회
-        builder.and(scheduleDay.isLocked.isTrue());
+        // 1. 기본은 확정된 스케줄만 조회 (공개용)
+        if (request.getLockedOnly() == null || request.getLockedOnly()) {
+            builder.and(scheduleDay.isLocked.isTrue());
+        }
 
         // 2. 닉네임 필터
         if (request.getNickname() != null && !request.getNickname().isBlank()) {
