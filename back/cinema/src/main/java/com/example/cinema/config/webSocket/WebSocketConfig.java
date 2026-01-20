@@ -20,8 +20,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns(
                         "http://localhost:3000/",
                         "http://127.0.0.1:3000/",
-                        "http://13.124.18.8:3000/",
-                        "https://13.124.18.8:3000/"
+                        "http://43.200.191.126:3000/",
+                        "https://43.200.191.126:3000/"
                 );
 
         // SockJS fallback (Postman, 브라우저 호환성)
@@ -29,8 +29,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns(
                         "http://localhost:3000/",
                         "http://127.0.0.1:3000/",
-                        "http://13.124.18.8:3000/",
-                        "https://13.124.18.8:3000/"
+                        "http://43.200.191.126:3000/",
+                        "https://43.200.191.126:3000/"
                 )
                 .withSockJS();
 

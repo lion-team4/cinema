@@ -18,8 +18,8 @@ public class AppMvcConfigurer implements WebMvcConfigurer {
                 .allowedOrigins(
                         "http://localhost:3000",
                         "http://127.0.0.1:3000",
-                        "http://13.124.18.8:3000",
-                        "https://13.124.18.8:3000"
+                        "http://43.200.191.126:3000",
+                        "https://43.200.191.126:3000"
                 )
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
