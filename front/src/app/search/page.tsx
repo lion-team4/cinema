@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { type ApiResponse, type ContentSearchResponse, type PageResponse, type ReviewListResponse } from '@/types';
@@ -9,6 +9,9 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import SectionHeader from '@/components/ui/SectionHeader';
+
+// Next.js 13+ App Router에서 useSearchParams()를 사용할 때는 dynamic 렌더링 필요
+export const dynamic = 'force-dynamic';
 
 type SortField = 'CREATED' | 'UPDATED' | 'VIEW';
 type ScheduleStatus = 'WAITING' | 'PLAYING' | 'CLOSED' | 'ENDED';
@@ -24,7 +27,7 @@ type ScheduleSearchResponse = {
   isLocked: boolean;
 };
 
-export default function SearchPage() {
+function SearchContent() {
   const { user } = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -948,5 +951,17 @@ export default function SearchPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto max-w-6xl px-6 py-12 text-white">
+        <div className="text-white/60">로딩 중...</div>
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 }
