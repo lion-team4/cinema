@@ -6,8 +6,7 @@ import { api } from '@/lib/api';
 import { type ApiResponse, type SubscriptionResponse } from '@/types';
 import { useRouter } from 'next/navigation';
 
-// NEXT_PUBLIC_ 접두어가 없어도 next.config.ts의 env 설정으로 인해 브라우저에서 접근 가능합니다.
-const clientKey = process.env.TOSS_CLIENT_KEY || process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+const clientKey = "test_ck_6BYq7GWPVve4Z0pXaGmL3NE5vbo1";
 const tossScriptUrl = 'https://js.tosspayments.com/v1';
 
 type TossPaymentsInstance = {

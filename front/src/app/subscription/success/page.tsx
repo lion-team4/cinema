@@ -78,7 +78,6 @@ function SubscriptionSuccessContent() {
     </div>
   );
 }
-
 export default function SubscriptionSuccessPage() {
   return (
     <Suspense fallback={
@@ -91,3 +90,4 @@ export default function SubscriptionSuccessPage() {
     </Suspense>
   );
 }
+

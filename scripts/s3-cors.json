@@ -1,0 +1,13 @@
+[
+  {
+    "AllowedOrigins": [
+      "http://13.124.18.8:3000",
+      "https://13.124.18.8:3000"
+    ],
+    "AllowedMethods": ["GET", "PUT", "POST", "HEAD", "DELETE"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]
+
