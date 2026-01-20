@@ -115,8 +115,10 @@ jobs:
               \"cd /opt/cinema-backend\",
               \"echo $ENV_B64 | base64 -d | sudo tee .env > /dev/null\",
               \"echo IMAGE=$IMAGE_URI | sudo tee image.env > /dev/null\",
+              \"echo FRONTEND_IMAGE=$FRONTEND_IMAGE | sudo tee -a image.env > /dev/null\",
               \"echo $TOKEN_B64 | base64 -d | sudo docker login -u $DOCKERHUB_USERNAME --password-stdin\",
               \"sudo docker pull $IMAGE_URI\",
+              \"sudo docker compose --env-file image.env pull\",
               \"sudo docker compose --env-file image.env up -d\",
               \"sudo docker image prune -f\"
             ]"
