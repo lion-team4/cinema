@@ -16,12 +16,24 @@ NC='\033[0m' # No Color
 # 2. 환경 변수 NEXT_PUBLIC_API_URL
 # 3. 기본값 http://localhost:8080
 API_URL=${1:-${NEXT_PUBLIC_API_URL:-"http://localhost:8080"}}
+if [ -n "$NEXT_PUBLIC_WS_URL" ]; then
+    WS_URL=$NEXT_PUBLIC_WS_URL
+else
+    if [[ "$API_URL" == https:* ]]; then
+        WS_URL=${API_URL/https:/wss:}
+    else
+        WS_URL=${API_URL/http:/ws:}
+    fi
+    WS_URL=${WS_URL%/}
+    WS_URL="${WS_URL}/ws"
+fi
 # 프론트엔드용 토스 키 (NEXT_PUBLIC_TOSS_CLIENT_KEY 우선, 없으면 TOSS_CLIENT_KEY 사용)
 FRONT_TOSS_KEY=${NEXT_PUBLIC_TOSS_CLIENT_KEY:-${TOSS_CLIENT_KEY}}
 
 echo -e "${GREEN}=== Docker 이미지 빌드 및 푸시 ===${NC}"
 echo -e "API URL: ${YELLOW}${API_URL}${NC}"
 echo -e "Toss Client Key: ${YELLOW}${FRONT_TOSS_KEY:-(미설정)}${NC}"
+echo -e "WS URL: ${YELLOW}${WS_URL}${NC}"
 
 # Docker Hub 로그인 확인
 echo -e "\n${GREEN}[0/4] Docker Hub 로그인 확인 중...${NC}"
@@ -48,6 +60,7 @@ fi
 cd front
 docker build --platform linux/amd64 \
   --build-arg NEXT_PUBLIC_API_URL=${API_URL} \
+  --build-arg NEXT_PUBLIC_WS_URL=${WS_URL} \
   --build-arg TOSS_CLIENT_KEY=${TOSS_CLIENT_KEY} \
   -t jeongbeomgyu/cinema-frontend:latest .
 cd ..

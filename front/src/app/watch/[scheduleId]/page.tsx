@@ -38,6 +38,29 @@ type ScheduleInfoResponse = {
   status: 'WAITING' | 'PLAYING' | 'ENDING' | 'CLOSED';
 };
 
+const resolveWsUrl = () => {
+  const explicit = process.env.NEXT_PUBLIC_WS_URL;
+  if (explicit) return explicit;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (apiUrl) {
+    try {
+      const url = new URL(apiUrl);
+      const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${protocol}//${url.host}/ws`;
+    } catch {
+      // fall through
+    }
+  }
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.hostname}:8080/ws`;
+  }
+  return 'ws://localhost:8080/ws';
+};
+
+const canEnter = (status?: ScheduleInfoResponse['status'] | null) =>
+  status === 'WAITING' || status === 'PLAYING';
+
 export default function WatchPage() {
   const router = useRouter();
   const params = useParams();
@@ -154,28 +177,65 @@ export default function WatchPage() {
     let mounted = true;
     let localEntered = false;
 
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const fetchScheduleInfo = async () => {
+      try {
+        const { data } = await api.get<ApiResponse<ScheduleInfoResponse>>(`/schedules/${scheduleId}`);
+        return data.data ?? null;
+      } catch {
+        return null;
+      }
+    };
+
+    const loadPlaybackWithRetry = async () => {
+      let lastError: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const response = await api.get<ApiResponse<PlaybackInfoResponse>>(
+            `/theaters/${scheduleId}/playback`
+          );
+          const playbackData = response.data.data;
+          if (playbackData?.videoUrl) {
+            if (mounted) {
+              setPlaybackInfo(playbackData);
+            }
+            return;
+          }
+          lastError = new Error('No video URL');
+        } catch (err) {
+          lastError = err;
+        }
+        await wait(1500);
+      }
+      if (mounted) {
+        setError('재생할 영상이 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.');
+        setPlaybackInfo(null);
+      }
+      throw lastError;
+    };
+
     const enterAndLoad = async () => {
       try {
         setLoading(true);
         setError('');
+        const info = await fetchScheduleInfo();
+        if (mounted) {
+          setScheduleInfo(info);
+        }
+        if (!info) {
+          setError('상영 정보를 찾을 수 없습니다.');
+          return;
+        }
+        if (!canEnter(info.status)) {
+          setError(`현재 입장할 수 없는 상영관입니다. 상태: ${info.status}`);
+          return;
+        }
         await api.post(`/theaters/${scheduleId}/enter`);
         localEntered = true;
         enteredSuccessRef.current = true;
-        const response = await api.get<ApiResponse<PlaybackInfoResponse>>(`/theaters/${scheduleId}/playback`);
-        if (mounted) {
-          console.log('[WatchPage] Playback API response:', response.data);
-          const playbackData = response.data.data;
-          console.log('[WatchPage] Playback data:', playbackData);
-          if (!playbackData || !playbackData.videoUrl) {
-            const errorMsg = response.data.message || '재생할 영상이 없습니다.';
-            console.error('[WatchPage] No video URL:', errorMsg);
-            setError(errorMsg);
-            setPlaybackInfo(null);
-          } else {
-            console.log('[WatchPage] Setting playback info with URL:', playbackData.videoUrl);
-            setPlaybackInfo(playbackData);
-          }
-        }
+        connectSocket();
+        await loadPlaybackWithRetry();
       } catch (err: any) {
         console.error('[WatchPage] Error loading playback info:', err);
         if (mounted) {
@@ -188,22 +248,9 @@ export default function WatchPage() {
       }
     };
 
-    const fetchScheduleInfo = async () => {
-      try {
-        const { data } = await api.get<ApiResponse<ScheduleInfoResponse>>(`/schedules/${scheduleId}`);
-        if (mounted) {
-          setScheduleInfo(data.data ?? null);
-        }
-      } catch {
-        if (mounted) {
-          setScheduleInfo(null);
-        }
-      }
-    };
-
     const connectSocket = () => {
       const client = new Client({
-        brokerURL: process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8080/ws',
+        brokerURL: resolveWsUrl(),
         reconnectDelay: 3000,
         connectHeaders: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       });
@@ -252,8 +299,6 @@ export default function WatchPage() {
 
     // 항상 enter 시도 (ref 제거)
     enterAndLoad();
-    fetchScheduleInfo();
-    connectSocket();
 
     return () => {
       mounted = false;

@@ -9,6 +9,7 @@ services:
       MYSQL_DATABASE: cinema-db
       MYSQL_USER: cinema
       MYSQL_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Seoul
     ports:
       - "3306:3306"
     volumes:
@@ -69,6 +70,7 @@ services:
       # Encoding
       ENCODING_POOL_SIZE: ${ENCODING_POOL_SIZE:-2}
       ENCODING_QUEUE: ${ENCODING_QUEUE:-50}
+      TZ: Asia/Seoul
     restart: unless-stopped
     networks:
       - cinema-network
@@ -82,6 +84,8 @@ services:
       - backend
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
+      TZ: Asia/Seoul
     restart: unless-stopped
     networks:
       - cinema-network
