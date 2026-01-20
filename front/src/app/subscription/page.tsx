@@ -80,7 +80,6 @@ export default function SubscriptionPage() {
           return;
         }
         if (!user) {
-          setLoading(false);
           return;
         }
         try {
@@ -98,10 +97,11 @@ export default function SubscriptionPage() {
         }
         const tossPayments = await loadTossPayments(clientKey);
         tossPaymentsRef.current = tossPayments;
-        setLoading(false);
       } catch (err) {
         console.error('Failed to load Toss Payments widget', err);
         setWidgetError('결제 위젯을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+      } finally {
+        setLoading(false);
       }
     };
 
