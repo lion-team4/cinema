@@ -14,32 +14,22 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class FfmpegDockerRunner {
+public class FfmpegRunner {
 
-    private static final Logger log = LoggerFactory.getLogger(FfmpegDockerRunner.class);
+    private static final Logger log = LoggerFactory.getLogger(FfmpegRunner.class);
 
-    @Value("${ffmpeg.docker_image}")
-    private String image;
+    @Value("${ffmpeg.binary:ffmpeg}")
+    private String ffmpegBinary;
 
     @Value("${ffmpeg.hls_segment_seconds}")
     private int segmentSeconds;
 
     public void transcodeToHls(Path hostJobDir, Path hostInputMp4, Path hostOutDir) {
-        String containerWork = "/work";
-        String containerIn = containerWork + "/" + hostJobDir.relativize(hostInputMp4);
-        String containerOutDir = containerWork + "/" + hostJobDir.relativize(hostOutDir);
-
         List<String> cmd = new ArrayList<>();
-        cmd.add("docker");
-        cmd.add("run");
-        cmd.add("--rm");
-        cmd.add("-v");
-        cmd.add(hostJobDir.toAbsolutePath() + ":" + containerWork);
-        cmd.add(image);
-
+        cmd.add(ffmpegBinary);
         cmd.add("-y");
         cmd.add("-i");
-        cmd.add(containerIn);
+        cmd.add(hostInputMp4.toAbsolutePath().toString());
         cmd.add("-c:v");
         cmd.add("h264");
         cmd.add("-c:a");
@@ -51,8 +41,8 @@ public class FfmpegDockerRunner {
         cmd.add("-hls_playlist_type");
         cmd.add("vod");
         cmd.add("-hls_segment_filename");
-        cmd.add(containerOutDir + "/seg_%05d.ts");
-        cmd.add(containerOutDir + "/index.m3u8");
+        cmd.add(hostOutDir.resolve("seg_%05d.ts").toAbsolutePath().toString());
+        cmd.add(hostOutDir.resolve("index.m3u8").toAbsolutePath().toString());
 
         run(cmd);
     }
@@ -73,12 +63,13 @@ public class FfmpegDockerRunner {
 
             int code = p.waitFor();
             if (code != 0) {
-                log.error("ffmpeg docker failed. exit={} output=\n{}", code, out);
-                throw new IllegalStateException("ffmpeg docker failed. exit=" + code);
+                log.error("ffmpeg failed. exit={} output=\n{}", code, out);
+                throw new IllegalStateException("ffmpeg failed. exit=" + code);
             }
-            log.info("ffmpeg docker success");
+            log.info("ffmpeg success");
         } catch (Exception e) {
-            throw new IllegalStateException("ffmpeg docker execution error: " + e.getMessage(), e);
+            throw new IllegalStateException("ffmpeg execution error: " + e.getMessage(), e);
         }
     }
 }
+

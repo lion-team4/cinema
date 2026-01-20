@@ -47,7 +47,7 @@ cloudfront:
   domain: https://d3q8b3ts21eo3m.cloudfront.net
 
 ffmpeg:
-  docker_image: jrottenberg/ffmpeg:6.1-alpine
+  binary: ffmpeg
   work_dir: /tmp/cinema-work
   hls_segment_seconds: 6
 

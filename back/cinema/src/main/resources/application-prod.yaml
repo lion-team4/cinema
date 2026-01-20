@@ -40,7 +40,7 @@ jwt:
   secret: ${JWT_SECRET}
 
 ffmpeg:
-  docker_image: jrottenberg/ffmpeg:6.1-alpine
+  binary: ffmpeg
   work_dir: /tmp/cinema-work
   hls_segment_seconds: 6
 
