@@ -1,10 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api, publicApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { type ApiResponse, type TokenResponse } from '@/types';
+
+// Next.js 13+ App Router에서 useSearchParams()를 사용할 때는 dynamic 렌더링 필요
+export const dynamic = 'force-dynamic';
 
 type UserProfileResponse = {
   userId: number;
@@ -14,7 +17,7 @@ type UserProfileResponse = {
   seller: boolean;
 };
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = useMemo(
@@ -133,6 +136,18 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-white/60">로딩 중...</div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
 
