@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { type ApiResponse, type SubscriptionResponse } from '@/types';
 import { useRouter } from 'next/navigation';
 
-const clientKey = "test_ck_6BYq7GWPVve4Z0pXaGmL3NE5vbo1";
+const clientKey = "test_ck_DpexMgkW36zJdmEzEdX93GbR5ozO";
 const tossScriptUrl = 'https://js.tosspayments.com/v1';
 
 type TossPaymentsInstance = {
