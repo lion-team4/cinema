@@ -152,7 +152,7 @@ export default function SubscriptionPage() {
       tossPaymentsRef.current = tossPayments;
 
       await tossPayments.requestBillingAuth('카드', {
-        customerKey: `user-${user.userId}`,
+        customerKey: `CUSTOMER_${user.userId}`,
         customerEmail: user.email,
         customerName: user.nickname,
         successUrl: `${window.location.origin}/subscription/success`,
