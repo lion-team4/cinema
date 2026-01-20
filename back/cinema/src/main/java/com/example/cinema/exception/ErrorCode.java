@@ -21,6 +21,7 @@ public enum ErrorCode {
     LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "U003", "이메일 또는 비밀번호가 일치하지 않습니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "U004", "유효하지 않은 토큰입니다."),
     NICKNAME_DUPLICATION(HttpStatus.BAD_REQUEST, "U005", "이미 사용 중인 닉네임입니다."),
+    TAG_DUPLICATION(HttpStatus.BAD_REQUEST, "T001", "이미 사용 중인 태그입니다."),
 
     // Subscription & Payment
     SUBSCRIPTION_ALREADY_EXISTS(HttpStatus.CONFLICT, "S001", "이미 이용 중인 구독이 존재합니다."),

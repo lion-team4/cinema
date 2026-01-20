@@ -79,6 +79,7 @@ public class ProjectSecurityConfig {
                                 "/contents/search",
                                 "/contents",
                                 "/contents/*",
+                                "/contents/tags/*",
                                 "/contents/reviews/search/**",
                                 "/media-assets/**",
                                 "/schedules/**"
@@ -114,6 +115,7 @@ public class ProjectSecurityConfig {
                                 "/contents/*/edit",
                                 "/contents/*/encoding-status",
                                 "/contents",
+                                "contents/tags",
                                 "/contents/**"
                         ).authenticated()
 
