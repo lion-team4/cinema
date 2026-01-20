@@ -55,6 +55,9 @@ export default function MyPage() {
   const [detailInfo, setDetailInfo] = useState<ContentDetailResponse | null>(null);
   const [detailTotalView, setDetailTotalView] = useState<number | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
+  const [subscriptionCanceling, setSubscriptionCanceling] = useState(false);
+  const [subscriptionError, setSubscriptionError] = useState('');
+  const [subscriptionSuccess, setSubscriptionSuccess] = useState('');
   const [profileUploading, setProfileUploading] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
@@ -323,6 +326,25 @@ export default function MyPage() {
     }
   };
 
+  const handleCancelSubscription = async () => {
+    if (!subscription || subscription.status !== 'ACTIVE') return;
+    if (!window.confirm('정말 구독을 해지하시겠습니까? 다음 결제일부터 해지됩니다.')) {
+      return;
+    }
+    try {
+      setSubscriptionCanceling(true);
+      setSubscriptionError('');
+      setSubscriptionSuccess('');
+      await api.delete('/users/subscriptions');
+      setSubscription(null);
+      setSubscriptionSuccess('구독 해지가 완료되었습니다.');
+    } catch (err: any) {
+      setSubscriptionError(err.response?.data?.message || '구독 해지에 실패했습니다.');
+    } finally {
+      setSubscriptionCanceling(false);
+    }
+  };
+
   const billingLabel = subscription?.billingProvider
     ? subscription.billingProvider === 'TOSS'
       ? 'Toss'
@@ -402,6 +424,30 @@ export default function MyPage() {
                       : '-'}
                   </p>
                 </div>
+              </div>
+              {(subscriptionError || subscriptionSuccess) && (
+                <div className="mt-4">
+                  {subscriptionError && (
+                    <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
+                      {subscriptionError}
+                    </div>
+                  )}
+                  {subscriptionSuccess && (
+                    <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
+                      {subscriptionSuccess}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="mt-4 flex justify-end">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleCancelSubscription}
+                  disabled={subscriptionCanceling}
+                >
+                  {subscriptionCanceling ? '해지 처리 중...' : '구독 취소'}
+                </Button>
               </div>
             </Card>
           )}

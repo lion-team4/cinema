@@ -541,24 +541,13 @@ export default function WatchPage() {
         ← 검색으로 돌아가기
       </button>
       ) : (
-        <div className="absolute left-4 right-4 top-4 z-10 flex items-center justify-between">
+        <div className="absolute left-4 right-4 top-4 z-10 flex items-center justify-end">
           <button
             type="button"
             onClick={() => setViewMode('theater')}
             className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs font-semibold text-white/90 hover:bg-black/80"
           >
             상영관 모드로
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              api.post(`/theaters/${scheduleId}/leave`).finally(() => {
-                router.push('/');
-              });
-            }}
-            className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs font-semibold text-white/90 hover:bg-black/80"
-          >
-            나가기
           </button>
         </div>
       )}
@@ -698,7 +687,7 @@ export default function WatchPage() {
               </div>
             </div>
             {viewMode === 'theater' && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex h-full min-h-0 flex-col">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex h-full min-h-0 flex-col overflow-hidden">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">채팅</h2>
                   {viewerCount !== null && (
@@ -709,7 +698,7 @@ export default function WatchPage() {
                 </div>
                 <div
                   ref={chatContainerRef}
-                  className="mt-4 flex-1 min-h-0 overflow-y-auto rounded-lg border border-white/10 bg-black/40 p-3 text-sm text-white/80"
+                  className="mt-4 h-[60vh] overflow-y-auto rounded-lg border border-white/10 bg-black/40 p-3 text-sm text-white/80"
                 >
                   {chatMessages.length === 0 && (
                     <p className="text-white/50">아직 메시지가 없습니다.</p>
