@@ -38,9 +38,13 @@ jobs:
       - name: Build & Push Frontend (DEV)
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
           FRONTEND_IMAGE_URI=${DOCKERHUB_USERNAME}/cinema-frontend:dev-${GITHUB_SHA}
-          docker build -t $FRONTEND_IMAGE_URI -f ./front/Dockerfile ./front
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+            --build-arg INTERNAL_API_URL=http://backend:8080 \
+            -t $FRONTEND_IMAGE_URI -f ./front/Dockerfile ./front
           docker push $FRONTEND_IMAGE_URI
           echo "FRONTEND_IMAGE_URI=$FRONTEND_IMAGE_URI" >> $GITHUB_ENV
 
