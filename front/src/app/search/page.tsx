@@ -14,7 +14,7 @@ import SectionHeader from '@/components/ui/SectionHeader';
 export const dynamic = 'force-dynamic';
 
 type SortField = 'CREATED' | 'UPDATED' | 'VIEW';
-type ScheduleStatus = 'WAITING' | 'PLAYING' | 'CLOSED' | 'ENDED';
+type ScheduleStatus = 'WAITING' | 'PLAYING' | 'ENDING' | 'CLOSED';
 
 type ScheduleSearchResponse = {
   scheduleItemId: number;
@@ -746,16 +746,26 @@ function SearchContent() {
 
                 <Card className="mt-6 p-4" variant="solid">
                   <h3 className="text-sm font-semibold section-title">상영 일정</h3>
-                  {detailSchedules.filter((s) => s.status === 'WAITING' || s.status === 'PLAYING').length === 0 ? (
+                  {detailSchedules.filter(
+                    (s) =>
+                      s.status === 'WAITING' ||
+                      s.status === 'PLAYING' ||
+                      (s.status === 'CLOSED' && new Date(s.startAt).getTime() > Date.now())
+                  ).length === 0 ? (
                     <p className="mt-2 text-sm text-white/60">상영 예정이 없습니다.</p>
                   ) : (
                     <div className="mt-3 space-y-2 text-sm text-white/70">
                       {detailSchedules
-                        .filter((s) => s.status === 'WAITING' || s.status === 'PLAYING')
+                        .filter(
+                          (s) =>
+                            s.status === 'WAITING' ||
+                            s.status === 'PLAYING' ||
+                            (s.status === 'CLOSED' && new Date(s.startAt).getTime() > Date.now())
+                        )
                         .map((schedule) => (
                           <div key={schedule.scheduleItemId} className="flex items-center justify-between gap-3">
                             <span>
-                              {schedule.status === 'PLAYING' ? '상영 중' : '대기 중'} · {formatKst(schedule.startAt)}
+                              {schedule.status === 'PLAYING' ? '상영 중' : schedule.status === 'WAITING' ? '대기 중' : '상영 예정'} · {formatKst(schedule.startAt)}
                             </span>
                             <Button
                               size="sm"
