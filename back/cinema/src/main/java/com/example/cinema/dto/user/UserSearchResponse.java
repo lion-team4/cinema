@@ -1,6 +1,7 @@
 package com.example.cinema.dto.user;
 
 import com.example.cinema.entity.User;
+import com.example.cinema.util.CdnUrlUtil;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,6 +28,18 @@ public class UserSearchResponse {
                 user.getUserId(),
                 user.getNickname(),
                 user.getProfileImage() != null ? user.getProfileImage().getObjectKey() : null
+        );
+    }
+
+    public static UserSearchResponse from(User user, String cfDomain) {
+        String profileImageUrl = null;
+        if (user.getProfileImage() != null) {
+            profileImageUrl = CdnUrlUtil.buildCdnUrl(user.getProfileImage().getObjectKey(), cfDomain);
+        }
+        return new UserSearchResponse(
+                user.getUserId(),
+                user.getNickname(),
+                profileImageUrl
         );
     }
 }

@@ -486,7 +486,13 @@ export default function TheatersPage() {
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-2xl font-bold">{detail.title}</h3>
-                      <p className="mt-1 text-sm text-white/60">감독 {detail.ownerNickname}</p>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/filmography/${encodeURIComponent(detail.ownerNickname)}`)}
+                        className="mt-1 text-sm text-white/60 hover:text-white hover:underline"
+                      >
+                        감독 {detail.ownerNickname}
+                      </button>
                     </div>
                     <p className="text-sm text-white/70">{detail.description}</p>
                     {detail.tags.length > 0 && (

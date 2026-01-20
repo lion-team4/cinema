@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
@@ -20,16 +20,13 @@ type ScheduleSearchResponse = {
   endAt: string;
   status: 'WAITING' | 'PLAYING' | 'ENDING' | 'CLOSED';
   isLocked: boolean;
+  scheduleDayId?: number | null;
 };
 
-type ContentEditResponse = {
+type EncodingStatusResponse = {
   contentId: number;
-  title: string;
-  description: string;
-  posterAssetId: number | null;
-  videoSourceAssetId: number | null;
-  videoHlsMasterAssetId: number | null;
-  status: 'PUBLISHED' | 'DRAFT' | 'PRIVATE';
+  encodingStatus: 'ENCODING' | 'READY' | 'FAILED' | null;
+  encodingError: string | null;
 };
 
 const statusLabel: Record<ContentSearchResponse['status'], string> = {
@@ -51,6 +48,9 @@ const formatLocalDateTime = (date: Date) => {
   )}:${pad(date.getMinutes())}`;
 };
 
+const pad = (value: number) => value.toString().padStart(2, '0');
+const toDateKey = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
 export default function ScheduleManagePage() {
   const router = useRouter();
   const { user, hasHydrated } = useAuthStore();
@@ -63,12 +63,12 @@ export default function ScheduleManagePage() {
   const [durationMinutes, setDurationMinutes] = useState<number>(90);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
-  const [contentDetail, setContentDetail] = useState<ContentEditResponse | null>(null);
-  const [publishStatus, setPublishStatus] = useState<ContentEditResponse['status']>('DRAFT');
-  const [statusSaving, setStatusSaving] = useState(false);
+  const [encodingStatusMap, setEncodingStatusMap] = useState<Record<number, EncodingStatusResponse['encodingStatus']>>({});
+  const startAtInputRef = useRef<HTMLInputElement | null>(null);
   const [schedules, setSchedules] = useState<ScheduleSearchResponse[]>([]);
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState('');
+  const [lockingDayId, setLockingDayId] = useState<number | null>(null);
   const [editingScheduleId, setEditingScheduleId] = useState<number | null>(null);
   const [editingStartAt, setEditingStartAt] = useState('');
   const [editingEndAt, setEditingEndAt] = useState('');
@@ -77,6 +77,7 @@ export default function ScheduleManagePage() {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+  const [selectedDate, setSelectedDate] = useState(() => toDateKey(new Date()));
 
   const endAt = useMemo(() => {
     if (!startAt || !durationMinutes) return '';
@@ -91,8 +92,6 @@ export default function ScheduleManagePage() {
     return Math.max(1, Math.ceil(durationMs / (60 * 1000)));
   };
 
-  const pad = (value: number) => value.toString().padStart(2, '0');
-  const toDateKey = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
   const monthDays = useMemo(() => {
     const firstDay = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
@@ -117,6 +116,8 @@ export default function ScheduleManagePage() {
     });
     return map;
   }, [schedules]);
+
+  const selectedSchedules = scheduleByDate.get(selectedDate) ?? [];
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -180,20 +181,27 @@ export default function ScheduleManagePage() {
   }, [items, selectedId]);
 
   useEffect(() => {
-    if (!selectedId || !user) return;
-    const fetchContentDetail = async () => {
-      try {
-        const { data } = await api.get<ApiResponse<ContentEditResponse>>(`/contents/${selectedId}/edit`);
-        if (data.data) {
-          setContentDetail(data.data);
-          setPublishStatus(data.data.status);
-        }
-      } catch {
-        // ignore
-      }
+    if (!user || items.length === 0) return;
+    let active = true;
+    const loadEncodingStatuses = async () => {
+      const entries = await Promise.all(
+        items.map(async (item) => {
+          try {
+            const { data } = await api.get<ApiResponse<EncodingStatusResponse>>(`/contents/${item.contentId}/encoding-status`);
+            return [item.contentId, data.data?.encodingStatus ?? null] as const;
+          } catch {
+            return [item.contentId, null] as const;
+          }
+        })
+      );
+      if (!active) return;
+      setEncodingStatusMap(Object.fromEntries(entries));
     };
-    fetchContentDetail();
-  }, [selectedId, user]);
+    loadEncodingStatuses();
+    return () => {
+      active = false;
+    };
+  }, [items, user]);
 
   const fetchSchedules = async () => {
     if (!user) return;
@@ -243,11 +251,6 @@ export default function ScheduleManagePage() {
         startAt,
         endAt,
       });
-      if (data.data?.scheduleDayId) {
-        await api.put(`/schedules/${data.data.scheduleDayId}/confirm`, {
-          isLock: true,
-        });
-      }
       setNotice('상영 일정이 등록되었습니다.');
       await fetchSchedules();
     } catch (err: any) {
@@ -257,27 +260,8 @@ export default function ScheduleManagePage() {
     }
   };
 
-  const handleSavePublish = async () => {
-    if (!contentDetail) return;
-    try {
-      setStatusSaving(true);
-      setError('');
-      setNotice('');
-      await api.put(`/contents/${contentDetail.contentId}`, {
-        title: contentDetail.title,
-        description: contentDetail.description,
-        posterAssetId: contentDetail.posterAssetId,
-        videoSourceAssetId: contentDetail.videoSourceAssetId,
-        videoHlsMasterAssetId: contentDetail.videoHlsMasterAssetId,
-        status: publishStatus,
-      });
-      setNotice('공개 상태가 저장되었습니다.');
-    } catch (err: any) {
-      setError(err.response?.data?.message || '공개 상태 저장에 실패했습니다.');
-    } finally {
-      setStatusSaving(false);
-    }
-  };
+  const selectedEncodingStatus = selectedId ? encodingStatusMap[selectedId] ?? null : null;
+  const isEncodingReady = selectedEncodingStatus === 'READY';
 
   const handleEditSchedule = (schedule: ScheduleSearchResponse) => {
     setEditingScheduleId(schedule.scheduleItemId);
@@ -312,6 +296,25 @@ export default function ScheduleManagePage() {
       setScheduleError(err.response?.data?.message || '상영 일정 삭제에 실패했습니다.');
     } finally {
       setScheduleLoading(false);
+    }
+  };
+
+  const handleConfirmDay = async (scheduleDayId: number | null | undefined) => {
+    if (!scheduleDayId) {
+      setScheduleError('scheduleDayId를 찾을 수 없어 확정할 수 없습니다.');
+      return;
+    }
+    try {
+      setLockingDayId(scheduleDayId);
+      setScheduleError('');
+      await api.put(`/schedules/${scheduleDayId}/confirm`, { isLock: true });
+      setSchedules((prev) => prev.map((item) => (
+        item.scheduleDayId === scheduleDayId ? { ...item, isLocked: true } : item
+      )));
+    } catch (err: any) {
+      setScheduleError(err.response?.data?.message || '상영 확정에 실패했습니다.');
+    } finally {
+      setLockingDayId(null);
     }
   };
 
@@ -441,11 +444,24 @@ export default function ScheduleManagePage() {
                 const dateKey = toDateKey(day);
                 const list = scheduleByDate.get(dateKey) ?? [];
                 const isCurrentMonth = day.getMonth() === calendarMonth.getMonth();
+                const isSelected = dateKey === selectedDate;
                 return (
                   <Card
                     key={dateKey}
                     variant="compact"
-                    className={`min-h-[120px] ${isCurrentMonth ? 'text-white' : 'text-white/40'}`}
+                    className={`min-h-[120px] cursor-pointer hover-soft ${isCurrentMonth ? 'text-white' : 'text-white/40'} ${isSelected ? 'border-red-500/70' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setSelectedDate(dateKey);
+                      setCalendarMonth(new Date(day.getFullYear(), day.getMonth(), 1));
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        setSelectedDate(dateKey);
+                        setCalendarMonth(new Date(day.getFullYear(), day.getMonth(), 1));
+                      }
+                    }}
                   >
                     <div className="text-right text-xs">{day.getDate()}</div>
                     <div className="mt-2 space-y-1">
@@ -480,6 +496,21 @@ export default function ScheduleManagePage() {
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {items.map((item) => {
                 const isSelected = selectedId === item.contentId;
+                const encodingStatus = encodingStatusMap[item.contentId] ?? null;
+                const encodingLabel =
+                  encodingStatus === 'READY'
+                    ? '인코딩 완료'
+                    : encodingStatus === 'FAILED'
+                      ? '인코딩 실패'
+                      : encodingStatus === 'ENCODING'
+                        ? '인코딩 중'
+                        : '상태 확인 중';
+                const encodingTone =
+                  encodingStatus === 'READY'
+                    ? 'success'
+                    : encodingStatus === 'FAILED'
+                      ? 'danger'
+                      : 'warning';
                 return (
                   <Card
                     key={item.contentId}
@@ -500,6 +531,9 @@ export default function ScheduleManagePage() {
                       <h3 className="text-sm font-semibold">{item.title}</h3>
                       {isSelected && <Badge className="bg-red-500/20 text-red-100">선택됨</Badge>}
                     </div>
+                    <div className="mt-2">
+                      <Badge tone={encodingTone}>{encodingLabel}</Badge>
+                    </div>
                     <p className="mt-2 text-xs text-white/60 line-clamp-2">{item.description}</p>
                   </Card>
                 );
@@ -517,13 +551,30 @@ export default function ScheduleManagePage() {
           <div className="mt-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-white/80 mb-1">상영 시작 시간</label>
-              <input
-                type="datetime-local"
-                value={startAt}
-                onChange={(e) => setStartAt(e.target.value)}
-                step={3600}
-                className="w-full rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:ring-red-500 focus:border-red-500"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  ref={startAtInputRef}
+                  type="datetime-local"
+                  value={startAt}
+                  onChange={(e) => setStartAt(e.target.value)}
+                  step={60}
+                  className="w-full rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:ring-red-500 focus:border-red-500"
+                />
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => {
+                    if (startAtInputRef.current?.showPicker) {
+                      startAtInputRef.current.showPicker();
+                    } else {
+                      startAtInputRef.current?.focus();
+                    }
+                  }}
+                >
+                  날짜 선택
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-white/50">예: 2025-02-01 19:00</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-white/80 mb-1">영상 길이(분)</label>
@@ -547,26 +598,11 @@ export default function ScheduleManagePage() {
             <p className="text-xs text-white/50">
               상영 일정 저장 시 자동으로 편성 확정됩니다.
             </p>
-            <div>
-              <label className="block text-sm font-medium text-white/80 mb-1">공개 상태</label>
-              <select
-                value={publishStatus}
-                onChange={(e) => setPublishStatus(e.target.value as ContentEditResponse['status'])}
-                className="w-full rounded-md border border-white/10 bg-black/60 px-3 py-2 text-sm text-white"
-              >
-                <option value="PUBLISHED" className="bg-black text-white">공개</option>
-                <option value="DRAFT" className="bg-black text-white">임시 저장</option>
-                <option value="PRIVATE" className="bg-black text-white">비공개</option>
-              </select>
-              <Button
-                variant="secondary"
-                onClick={handleSavePublish}
-                disabled={statusSaving}
-                className="mt-3 w-full"
-              >
-                {statusSaving ? '저장 중...' : '공개 상태 저장'}
-              </Button>
-            </div>
+            {selectedId && selectedEncodingStatus !== 'READY' && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+                인코딩이 완료된 콘텐츠만 상영 일정을 등록할 수 있습니다.
+              </div>
+            )}
           </div>
 
           {error && (
@@ -583,7 +619,7 @@ export default function ScheduleManagePage() {
           <Button
             variant="primary"
             onClick={handleCreateSchedule}
-            disabled={saving}
+            disabled={saving || !isEncodingReady}
             className="mt-6 w-full py-3"
           >
             {saving ? '저장 중...' : '상영 일정 저장'}
@@ -592,8 +628,43 @@ export default function ScheduleManagePage() {
       </div>
 
       <Card className="mt-10 p-6">
-        <h2 className="text-lg font-semibold section-title">콘텐츠별 상영 일정</h2>
-        <p className="mt-2 text-xs text-white/60">선택한 콘텐츠의 상영 일정을 확인하고 수정할 수 있습니다.</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold section-title">상영 일정 목록</h2>
+            <p className="mt-2 text-xs text-white/60">{selectedDate} 기준</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                const current = new Date(selectedDate);
+                current.setDate(current.getDate() - 1);
+                setSelectedDate(toDateKey(current));
+              }}
+            >
+              ‹
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setSelectedDate(toDateKey(new Date()))}
+            >
+              오늘
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                const current = new Date(selectedDate);
+                current.setDate(current.getDate() + 1);
+                setSelectedDate(toDateKey(current));
+              }}
+            >
+              ›
+            </Button>
+          </div>
+        </div>
 
         {scheduleLoading && (
           <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/60">
@@ -608,68 +679,38 @@ export default function ScheduleManagePage() {
 
         {!scheduleLoading && !scheduleError && (
           <div className="mt-4 space-y-4">
-            {schedules.filter((item) => item.contentId === selectedId).length === 0 && (
+            {selectedSchedules.length === 0 && (
               <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-                아직 등록된 상영 일정이 없습니다.
+                선택한 날짜에 상영 일정이 없습니다.
               </div>
             )}
-            {schedules
-              .filter((item) => item.contentId === selectedId)
-              .map((schedule) => (
-                <Card
-                  key={schedule.scheduleItemId}
-                  variant="compact"
-                  className="bg-black/40"
-                  hover={false}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-white/70">
-                    <span>
-                      {formatLocalDateTime(new Date(schedule.startAt)).replace('T', ' ')} ~{' '}
-                      {formatLocalDateTime(new Date(schedule.endAt)).replace('T', ' ')}
-                    </span>
-                    <Badge>{schedule.status}</Badge>
+            {selectedSchedules.map((item) => (
+              <Card key={item.scheduleItemId} className="p-4" variant="compact">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs text-white/60">
+                      {new Date(item.startAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                      {' ~ '}
+                      {new Date(item.endAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <h3 className="mt-1 text-base font-semibold">{item.contentTitle}</h3>
                   </div>
-
-                  {editingScheduleId === schedule.scheduleItemId ? (
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <input
-                        type="datetime-local"
-                        value={editingStartAt}
-                        onChange={(e) => setEditingStartAt(e.target.value)}
-                        className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
-                      />
-                      <input
-                        type="datetime-local"
-                        value={editingEndAt}
-                        onChange={(e) => setEditingEndAt(e.target.value)}
-                        className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
-                      />
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="primary" onClick={handleUpdateSchedule}>
-                          저장
-                        </Button>
-                        <Button size="sm" variant="secondary" onClick={() => setEditingScheduleId(null)}>
-                          취소
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-4 flex gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => handleEditSchedule(schedule)}>
-                        시간 수정
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleDeleteSchedule(schedule.scheduleItemId)}
-                        className="border-red-500/40 text-red-200 hover:border-red-400"
-                      >
-                        삭제
-                      </Button>
-                    </div>
-                  )}
-                </Card>
-              ))}
+                  <div className="flex items-center gap-2">
+                    <Badge tone={item.isLocked ? 'success' : 'default'}>
+                      {item.isLocked ? '확정됨' : '미확정'}
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleConfirmDay(item.scheduleDayId)}
+                      disabled={item.isLocked || lockingDayId === item.scheduleDayId}
+                    >
+                      {lockingDayId === item.scheduleDayId ? '확정 중...' : '상영 확정'}
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
         )}
       </Card>

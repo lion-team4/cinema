@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import type { ApiResponse, PageResponse, ReviewListResponse } from '@/types';
+import Badge from '@/components/ui/Badge';
 
 type ContentDetailResponse = {
   contentId: number;
@@ -170,15 +171,32 @@ export default function ContentDetailPage() {
             <div className="space-y-4">
               <div>
                 <h1 className="text-3xl font-bold">{detail.title}</h1>
-                <p className="mt-2 text-sm text-white/60">감독 {detail.ownerNickname}</p>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/filmography/${encodeURIComponent(detail.ownerNickname)}`)}
+                  className="mt-2 text-sm text-white/60 hover:text-white hover:underline"
+                >
+                  감독 {detail.ownerNickname}
+                </button>
               </div>
               <p className="text-white/70">{detail.description}</p>
               {detail.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {detail.tags.map((tag) => (
-                    <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
+                    <Badge
+                      key={tag}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => router.push(`/search?tags=${encodeURIComponent(tag)}`)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          router.push(`/search?tags=${encodeURIComponent(tag)}`);
+                        }
+                      }}
+                      className="cursor-pointer hover:bg-white/10"
+                    >
                       #{tag}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               )}

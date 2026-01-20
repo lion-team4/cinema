@@ -51,6 +51,11 @@ export default function SiteHeader() {
           <Link href="/search" className="hover:text-white transition-colors">검색</Link>
           <Link href="/theaters" className="hover:text-white transition-colors">상영관</Link>
           <Link href="/schedules/manage" className="hover:text-white transition-colors">스튜디오</Link>
+          {user && (
+            <Link href={`/filmography/${encodeURIComponent(user.nickname)}`} className="hover:text-white transition-colors">
+              필모그래피
+            </Link>
+          )}
           {(!subscription || subscription.status !== 'ACTIVE') && (
             <Link href="/subscription" className="hover:text-white transition-colors">구독</Link>
           )}

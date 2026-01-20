@@ -155,3 +155,36 @@ table tbody tr:hover {
 .text-white\/50 {
   color: var(--muted);
 }
+
+/* Themed scrollbars */
+.scrollbar-theme {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(239, 68, 68, 0.6) rgba(255, 255, 255, 0.08);
+}
+
+.scrollbar-theme::-webkit-scrollbar {
+  height: 10px;
+}
+
+.scrollbar-theme::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+.scrollbar-theme::-webkit-scrollbar-thumb {
+  background: rgba(239, 68, 68, 0.6);
+  border-radius: 999px;
+}
+
+.scrollbar-theme::-webkit-scrollbar-thumb:hover {
+  background: rgba(239, 68, 68, 0.75);
+}
+
+/* Keep scrollbar gutter visible for scrollable areas */
+.scrollbar-always {
+  scrollbar-gutter: stable both-edges;
+}
+
+.scrollbar-always::-webkit-scrollbar {
+  display: block;
+}

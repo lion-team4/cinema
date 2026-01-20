@@ -33,22 +33,22 @@ export default function ContentManagePage() {
 
   const fetchContents = useCallback(async () => {
     if (!user) return;
-    try {
-      setLoading(true);
-      setError('');
-      const { data } = await api.get<ApiResponse<PageResponse<ContentSearchResponse>>>('/contents', {
-        params: {
-          nickname: user.nickname,
-          page: 0,
-          size: 20,
-        },
-      });
-      setItems(data.data?.content ?? []);
-    } catch (err: any) {
-      setError(err.response?.data?.message || '콘텐츠 목록을 불러오지 못했습니다.');
-    } finally {
-      setLoading(false);
-    }
+      try {
+        setLoading(true);
+        setError('');
+        const { data } = await api.get<ApiResponse<PageResponse<ContentSearchResponse>>>('/contents', {
+          params: {
+            nickname: user.nickname,
+            page: 0,
+            size: 20,
+          },
+        });
+        setItems(data.data?.content ?? []);
+      } catch (err: any) {
+        setError(err.response?.data?.message || '콘텐츠 목록을 불러오지 못했습니다.');
+      } finally {
+        setLoading(false);
+      }
   }, [user]);
 
   useEffect(() => {
@@ -86,43 +86,43 @@ export default function ContentManagePage() {
           subtitle="내가 업로드한 콘텐츠를 한눈에 확인하고 관리하세요."
         />
 
-        <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex justify-end">
           <Button variant="primary" onClick={() => router.push('/contents/create')}>
-            콘텐츠 업로드
+          콘텐츠 업로드
           </Button>
+      </div>
+
+      {loading && (
+        <div className="mt-10 rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/60">
+          콘텐츠를 불러오는 중입니다...
         </div>
+      )}
 
-        {loading && (
-          <div className="mt-10 rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/60">
-            콘텐츠를 불러오는 중입니다...
-          </div>
-        )}
+      {!loading && error && (
+        <div className="mt-10 rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-sm text-red-200">
+          {error}
+        </div>
+      )}
 
-        {!loading && error && (
-          <div className="mt-10 rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-sm text-red-200">
-            {error}
-          </div>
-        )}
+      {!loading && !error && items.length === 0 && (
+        <div className="mt-10 rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+          콘텐츠가 없습니다. 새로운 콘텐츠를 업로드해보세요.
+        </div>
+      )}
 
-        {!loading && !error && items.length === 0 && (
-          <div className="mt-10 rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/70">
-            콘텐츠가 없습니다. 새로운 콘텐츠를 업로드해보세요.
-          </div>
-        )}
-
-        {!loading && !error && items.length > 0 && (
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((item) => (
+      {!loading && !error && items.length > 0 && (
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((item) => (
               <Card key={item.contentId} hover>
-                <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between">
                   <Badge className={statusColor[item.status]}>{statusLabel[item.status]}</Badge>
-                  <span className="text-xs text-white/50">조회수 {item.totalView}</span>
-                </div>
-                <h3 className="mt-4 text-lg font-semibold">{item.title}</h3>
-                <p className="mt-2 text-sm text-white/70 line-clamp-3">{item.description}</p>
-                <div className="mt-4 text-xs text-white/40">
-                  작성자 {item.ownerNickname}
-                </div>
+                <span className="text-xs text-white/50">조회수 {item.totalView}</span>
+              </div>
+              <h3 className="mt-4 text-lg font-semibold">{item.title}</h3>
+              <p className="mt-2 text-sm text-white/70 line-clamp-3">{item.description}</p>
+              <div className="mt-4 text-xs text-white/40">
+                작성자 {item.ownerNickname}
+              </div>
                 <div className="mt-4 flex items-center gap-3">
                   <Button
                     variant="secondary"
@@ -139,12 +139,12 @@ export default function ContentManagePage() {
                   >
                     {deleting === item.contentId ? '삭제 중...' : '삭제'}
                   </Button>
-                </div>
+            </div>
               </Card>
-            ))}
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
+    </div>
     </SubscriptionGate>
   );
 }

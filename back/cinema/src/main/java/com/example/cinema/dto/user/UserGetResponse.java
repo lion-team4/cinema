@@ -1,6 +1,7 @@
 package com.example.cinema.dto.user;
 
 import com.example.cinema.entity.User;
+import com.example.cinema.util.CdnUrlUtil;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -23,6 +24,22 @@ public class UserGetResponse {
                 .email(user.getEmail())
                 .nickname(user.getNickname())
                 .profileImageUrl(user.getProfileImage() != null ? user.getProfileImage().getObjectKey() : null)
+                .seller(user.getSeller())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
+
+    public static UserGetResponse from(User user, String cfDomain) {
+        String profileImageUrl = null;
+        if (user.getProfileImage() != null) {
+            profileImageUrl = CdnUrlUtil.buildCdnUrl(user.getProfileImage().getObjectKey(), cfDomain);
+        }
+        return UserGetResponse.builder()
+                .userId(user.getUserId())
+                .email(user.getEmail())
+                .nickname(user.getNickname())
+                .profileImageUrl(profileImageUrl)
                 .seller(user.getSeller())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())

@@ -622,7 +622,16 @@ export default function SearchPage() {
                 )}
               </div>
               <h3 className="mt-3 text-lg font-semibold">{item.title}</h3>
-              <p className="mt-1 text-xs text-white/60">감독 {item.ownerNickname}</p>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  router.push(`/filmography/${encodeURIComponent(item.ownerNickname)}`);
+                }}
+                className="mt-1 text-xs text-white/60 hover:text-white hover:underline"
+              >
+                감독 {item.ownerNickname}
+              </button>
               <p className="mt-2 text-sm text-white/70 line-clamp-3">{item.description}</p>
               <div className="mt-3 text-xs text-white/50">
                 조회수 {item.totalView} · {item.durationMs ? `${Math.ceil(item.durationMs / 60000)}분` : '길이 정보 없음'}
@@ -702,7 +711,13 @@ export default function SearchPage() {
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-2xl font-bold">{detail.title}</h3>
-                      <p className="mt-1 text-sm text-white/60">감독 {detail.ownerNickname}</p>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/filmography/${encodeURIComponent(detail.ownerNickname)}`)}
+                        className="mt-1 text-sm text-white/60 hover:text-white hover:underline"
+                      >
+                        감독 {detail.ownerNickname}
+          </button>
                     </div>
                     <p className="text-sm text-white/70">{detail.description}</p>
                     {detail.tags.length > 0 && (
