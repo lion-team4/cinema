@@ -40,3 +40,8 @@ out/
 application-test.yml
 .md
 .sql
+
+# Environment variables
+.env
+.env.local
+.env.production
