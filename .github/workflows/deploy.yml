@@ -63,7 +63,7 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           FRONTEND_IMAGE: ${{ secrets.FRONTEND_IMAGE }}
         run: |
-          cat <<'APPENV' > app.env
+          cat <<APPENV > app.env
           DB_HOST=${DB_HOST}
           DB_PORT=${DB_PORT}
           DB_NAME=${DB_NAME}
@@ -131,7 +131,7 @@ jobs:
               \"echo FRONTEND_IMAGE=$FRONTEND_IMAGE | sudo tee -a image.env > /dev/null\",
               \"echo $COMPOSE_B64 | base64 -d | sudo tee docker-compose.yml > /dev/null\",
               \"echo $TOKEN_B64 | base64 -d | sudo docker login -u $DOCKERHUB_USERNAME --password-stdin\",
-              \"sudo docker compose -f docker-compose.yml --env-file image.env pull\",
-              \"sudo docker compose -f docker-compose.yml --env-file image.env up -d\",
+              \"sudo docker compose -f docker-compose.yml --env-file .env --env-file image.env pull\",
+              \"sudo docker compose -f docker-compose.yml --env-file .env --env-file image.env up -d\",
               \"sudo docker image prune -f\"
             ]"
