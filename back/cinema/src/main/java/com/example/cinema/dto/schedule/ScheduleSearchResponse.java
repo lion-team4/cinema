@@ -23,6 +23,7 @@ public class ScheduleSearchResponse {
     private LocalDateTime endAt;
     private ScheduleStatus status;
     private Boolean isLocked;
+    private Long scheduleDayId;
 
     public static ScheduleSearchResponse from(ScheduleItem item) {
         return ScheduleSearchResponse.builder()
@@ -34,6 +35,7 @@ public class ScheduleSearchResponse {
                 .endAt(item.getEndAt())
                 .status(item.getStatus())
                 .isLocked(item.getScheduleDay().getIsLocked())
+                .scheduleDayId(item.getScheduleDay().getScheduleDayId())
                 .build();
     }
 }
