@@ -6,7 +6,8 @@ import { api } from '@/lib/api';
 import { type ApiResponse, type SubscriptionResponse } from '@/types';
 import { useRouter } from 'next/navigation';
 
-const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+// NEXT_PUBLIC_ 접두어가 없어도 next.config.ts의 env 설정으로 인해 브라우저에서 접근 가능합니다.
+const clientKey = process.env.TOSS_CLIENT_KEY || process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
 const tossScriptUrl = 'https://js.tosspayments.com/v1';
 
 type TossPaymentsInstance = {
@@ -136,7 +137,7 @@ export default function SubscriptionPage() {
         const { data } = await api.get<ApiResponse<SubscriptionResponse>>('/users/subscriptions');
         const existing = data.data;
         if (existing?.status === 'ACTIVE') {
-          router.push('/search');
+          router.replace('/search');
           return;
         }
       } catch (err: any) {
@@ -194,6 +195,7 @@ export default function SubscriptionPage() {
           >
             {loading ? '결제 준비 중...' : '월간 구독 시작하기'}
           </button>
+      {/* ... (rest of code) ... */}
 
           <ul className="mt-6 space-y-2 text-sm text-white/70">
             <li>✓ 모든 상영관 무제한 입장</li>

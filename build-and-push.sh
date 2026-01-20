@@ -39,16 +39,16 @@ cd ../..
 # 프론트엔드 Docker 이미지 빌드
 echo -e "\n${GREEN}[2/4] 프론트엔드 Docker 이미지 빌드 중...${NC}"
 
-if [ -z "$FRONT_TOSS_KEY" ]; then
-    echo -e "${RED}Error: TOSS_CLIENT_KEY 또는 NEXT_PUBLIC_TOSS_CLIENT_KEY 환경 변수가 설정되지 않았습니다.${NC}"
+# TOSS_CLIENT_KEY가 설정되어 있는지 확인
+if [ -z "$TOSS_CLIENT_KEY" ]; then
+    echo -e "${RED}Error: TOSS_CLIENT_KEY 환경 변수가 설정되지 않았습니다.${NC}"
     echo -e "구독 결제 기능을 위해 반드시 필요합니다."
-    # 강제 종료하지는 않지만 경고를 강하게 함
 fi
 
 cd front
 docker build --platform linux/amd64 \
   --build-arg NEXT_PUBLIC_API_URL=${API_URL} \
-  --build-arg NEXT_PUBLIC_TOSS_CLIENT_KEY=${FRONT_TOSS_KEY} \
+  --build-arg TOSS_CLIENT_KEY=${TOSS_CLIENT_KEY} \
   -t jeongbeomgyu/cinema-frontend:latest .
 cd ..
 
