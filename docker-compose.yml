@@ -1,0 +1,95 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8.0
+    platform: linux/amd64
+    container_name: cinema-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: cinema-db
+      MYSQL_USER: cinema
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - cinema-network
+
+  backend:
+    image: jeongbeomgyu/cinema-backend:latest
+    container_name: cinema-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/cinema-db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: cinema
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT: 30000
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQLDialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: prod
+      
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      
+      # Toss Payments
+      TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY}
+      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY}
+      TOSS_URL: ${TOSS_URL:-https://api.tosspayments.com/v1}
+      
+      # AWS
+      AWS_REGION: ${AWS_REGION:-ap-northeast-2}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      AWS_CLOUDFRONT_DOMAIN: ${AWS_CLOUDFRONT_DOMAIN}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      
+      # CloudFront
+      CLOUDFRONT_DOMAIN: ${CLOUDFRONT_DOMAIN:-${AWS_CLOUDFRONT_DOMAIN}}
+      
+      # FFmpeg
+      FFMPEG_DOCKER_IMAGE: ${FFMPEG_DOCKER_IMAGE:-jrottenberg/ffmpeg:6.1-alpine}
+      FFMPEG_WORK_DIR: ${FFMPEG_WORK_DIR:-/tmp/cinema-work}
+      FFMPEG_HLS_SEGMENT_SECONDS: ${FFMPEG_HLS_SEGMENT_SECONDS:-6}
+      
+      # Encoding
+      ENCODING_POOL_SIZE: ${ENCODING_POOL_SIZE:-2}
+      ENCODING_QUEUE: ${ENCODING_QUEUE:-50}
+    restart: unless-stopped
+    networks:
+      - cinema-network
+
+  frontend:
+    image: jeongbeomgyu/cinema-frontend:latest
+    container_name: cinema-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+    restart: unless-stopped
+    networks:
+      - cinema-network
+
+volumes:
+  mysql_data:
+
+networks:
+  cinema-network:
+    driver: bridge
+
