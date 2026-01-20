@@ -1,8 +1,8 @@
 spring:
   application:
     name: cinema
-  profiles:
-    active: prod
+#  profiles:
+#    active: prod  # 로컬: 주석처리, 배포: docker-compose에서 SPRING_PROFILES_ACTIVE=prod 설정
 
   datasource:
     url: jdbc:mysql://localhost:3306/cinema_db
