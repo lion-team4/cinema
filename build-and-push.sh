@@ -11,10 +11,17 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-API_URL=${1:-"http://localhost:8080"}
+# 환경 변수 우선순위 결정
+# 1. 스크립트 인자 ($1)
+# 2. 환경 변수 NEXT_PUBLIC_API_URL
+# 3. 기본값 http://localhost:8080
+API_URL=${1:-${NEXT_PUBLIC_API_URL:-"http://localhost:8080"}}
+# 프론트엔드용 토스 키 (NEXT_PUBLIC_TOSS_CLIENT_KEY 우선, 없으면 TOSS_CLIENT_KEY 사용)
+FRONT_TOSS_KEY=${NEXT_PUBLIC_TOSS_CLIENT_KEY:-${TOSS_CLIENT_KEY}}
 
 echo -e "${GREEN}=== Docker 이미지 빌드 및 푸시 ===${NC}"
 echo -e "API URL: ${YELLOW}${API_URL}${NC}"
+echo -e "Toss Client Key: ${YELLOW}${FRONT_TOSS_KEY:-(미설정)}${NC}"
 
 # Docker Hub 로그인 확인
 echo -e "\n${GREEN}[0/4] Docker Hub 로그인 확인 중...${NC}"
@@ -31,9 +38,17 @@ cd ../..
 
 # 프론트엔드 Docker 이미지 빌드
 echo -e "\n${GREEN}[2/4] 프론트엔드 Docker 이미지 빌드 중...${NC}"
+
+# TOSS_CLIENT_KEY가 설정되어 있는지 확인
+if [ -z "$TOSS_CLIENT_KEY" ]; then
+    echo -e "${RED}Error: TOSS_CLIENT_KEY 환경 변수가 설정되지 않았습니다.${NC}"
+    echo -e "구독 결제 기능을 위해 반드시 필요합니다."
+fi
+
 cd front
 docker build --platform linux/amd64 \
   --build-arg NEXT_PUBLIC_API_URL=${API_URL} \
+  --build-arg TOSS_CLIENT_KEY=${TOSS_CLIENT_KEY} \
   -t jeongbeomgyu/cinema-frontend:latest .
 cd ..
 

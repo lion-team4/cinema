@@ -24,7 +24,7 @@ services:
       - cinema-network
 
   backend:
-    image: jeongbeomgyu/cinema-backend:latest
+    image: ${IMAGE}
     container_name: cinema-backend
     ports:
       - "8080:8080"
@@ -74,14 +74,14 @@ services:
       - cinema-network
 
   frontend:
-    image: jeongbeomgyu/cinema-frontend:latest
+    image: ${FRONTEND_IMAGE:-lusick/cinema-frontend:latest}
     container_name: cinema-frontend
     ports:
       - "3000:3000"
     depends_on:
       - backend
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     restart: unless-stopped
     networks:
       - cinema-network

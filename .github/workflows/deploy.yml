@@ -1,16 +1,24 @@
-name: Deploy to EC2 with Docker
+name: deploy-dev
 
 on:
   push:
-    branches: [ "dev" ]
-  workflow_dispatch:
+    branches: ["dev"]
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS (OIDC) - DEV
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -18,75 +26,80 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push Backend Image
+      - name: Build & Push Backend (DEV)
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
-          docker build --platform linux/amd64 -t ${{ secrets.DOCKERHUB_USERNAME }}/cinema-backend:latest ./back/cinema
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/cinema-backend:latest
+          IMAGE_URI=${DOCKERHUB_USERNAME}/cinema-backend:dev-${GITHUB_SHA}
+          docker build -t $IMAGE_URI -f ./back/cinema/Dockerfile ./back/cinema
+          docker push $IMAGE_URI
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
-      - name: Build and Push Frontend Image
+      - name: Build & Push Frontend (DEV)
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
-          docker build --no-cache --platform linux/amd64 \
-            --build-arg NEXT_PUBLIC_API_URL=http://${{ secrets.EC2_IP }}:8080 \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/cinema-frontend:latest ./front
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/cinema-frontend:latest
+          FRONTEND_IMAGE_URI=${DOCKERHUB_USERNAME}/cinema-frontend:dev-${GITHUB_SHA}
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+            --build-arg INTERNAL_API_URL=http://backend:8080 \
+            -t $FRONTEND_IMAGE_URI -f ./front/Dockerfile ./front
+          docker push $FRONTEND_IMAGE_URI
+          echo "FRONTEND_IMAGE_URI=$FRONTEND_IMAGE_URI" >> $GITHUB_ENV
 
-      - name: Copy Config Files to EC2
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.EC2_IP }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml,deploy-ec2.sh"
-          target: "~/cinema"
-          strip_components: 0
+      - name: Prepare compose (DEV)
+        run: |
+          COMPOSE_B64=$(base64 -w0 docker-compose.yml)
+          {
+            echo "COMPOSE_B64<<COMPOSE"
+            echo "${COMPOSE_B64}"
+            echo "COMPOSE"
+          } >> "$GITHUB_ENV"
 
-      - name: Execute Deployment Script
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.EC2_IP }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/cinema
-            # GitHub Secrets를 사용하여 .env 파일 동적 생성
-            # docker-compose.yml과 같은 위치에 .env 파일을 생성하여 docker-compose가 자동으로 인식하도록 함
-            cat > .env << EOF
-            # Database
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
-            
-            # JWT & API Keys
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            TOSS_CLIENT_KEY=${{ secrets.TOSS_CLIENT_KEY }}
-            TOSS_SECRET_KEY=${{ secrets.TOSS_SECRET_KEY }}
-            TOSS_URL=${{ secrets.TOSS_URL }}
-            
-            # AWS
-            AWS_REGION=${{ secrets.AWS_REGION }}
-            AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
-            AWS_CLOUDFRONT_DOMAIN=${{ secrets.AWS_CLOUDFRONT_DOMAIN }}
-            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            
-            # CloudFront
-            CLOUDFRONT_DOMAIN=${{ secrets.CLOUDFRONT_DOMAIN }}
-            
-            # FFmpeg
-            FFMPEG_DOCKER_IMAGE=${{ secrets.FFMPEG_DOCKER_IMAGE }}
-            FFMPEG_WORK_DIR=${{ secrets.FFMPEG_WORK_DIR }}
-            FFMPEG_HLS_SEGMENT_SECONDS=${{ secrets.FFMPEG_HLS_SEGMENT_SECONDS }}
-            
-            # Encoding
-            ENCODING_POOL_SIZE=${{ secrets.ENCODING_POOL_SIZE }}
-            ENCODING_QUEUE=${{ secrets.ENCODING_QUEUE }}
-            
-            # Frontend
-            NEXT_PUBLIC_API_URL=http://${{ secrets.EC2_IP }}:8080
-            EOF
-            
-            # .env 파일 권한 설정
-            chmod 600 .env
-            
-            chmod +x deploy-ec2.sh
-            ./deploy-ec2.sh
+      - name: Deploy on EC2 via SSM (DEV)
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+          IMAGE_URI: ${{ env.IMAGE_URI }}
+          COMPOSE_B64: ${{ env.COMPOSE_B64 }}
+          FRONTEND_IMAGE: ${{ env.FRONTEND_IMAGE_URI }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          TOKEN_B64=$(printf '%s' "$DOCKERHUB_TOKEN" | base64 -w0)
 
+          # 1. SSM 명령 전송 및 Command ID 저장
+          COMMAND_ID=$(aws ssm send-command \
+            --region "$AWS_REGION" \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands="[
+              \"set -e\",
+              \"sudo mkdir -p /opt/cinema-backend\",
+              \"cd /opt/cinema-backend\",
+              \"echo IMAGE=$IMAGE_URI | sudo tee image.env > /dev/null\",
+              \"echo FRONTEND_IMAGE=$FRONTEND_IMAGE | sudo tee -a image.env > /dev/null\",
+              \"echo $COMPOSE_B64 | base64 -d | sudo tee docker-compose.yml > /dev/null\",
+              \"echo $TOKEN_B64 | base64 -d | sudo docker login -u $DOCKERHUB_USERNAME --password-stdin\",
+              \"sudo docker compose -f docker-compose.yml --env-file .env --env-file image.env pull\",
+              \"sudo docker compose -f docker-compose.yml --env-file .env --env-file image.env up -d\",
+              \"sudo docker image prune -f\"
+            ]" \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "SSM Command ID: $COMMAND_ID"
+
+          # 2. 명령이 완료될 때까지 대기 (최대 5분)
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --region "$AWS_REGION"
+
+          # 3. 명령 실행 결과 및 로그 가져오기
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --region "$AWS_REGION" \
+            --query "{Status:Status,StandardOutputContent:StandardOutputContent,StandardErrorContent:StandardErrorContent}"

@@ -80,7 +80,6 @@ export default function SubscriptionPage() {
           return;
         }
         if (!user) {
-          setLoading(false);
           return;
         }
         try {
@@ -98,10 +97,11 @@ export default function SubscriptionPage() {
         }
         const tossPayments = await loadTossPayments(clientKey);
         tossPaymentsRef.current = tossPayments;
-        setLoading(false);
       } catch (err) {
         console.error('Failed to load Toss Payments widget', err);
         setWidgetError('결제 위젯을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -136,7 +136,7 @@ export default function SubscriptionPage() {
         const { data } = await api.get<ApiResponse<SubscriptionResponse>>('/users/subscriptions');
         const existing = data.data;
         if (existing?.status === 'ACTIVE') {
-          router.push('/search');
+          router.replace('/search');
           return;
         }
       } catch (err: any) {
@@ -194,6 +194,7 @@ export default function SubscriptionPage() {
           >
             {loading ? '결제 준비 중...' : '월간 구독 시작하기'}
           </button>
+      {/* ... (rest of code) ... */}
 
           <ul className="mt-6 space-y-2 text-sm text-white/70">
             <li>✓ 모든 상영관 무제한 입장</li>

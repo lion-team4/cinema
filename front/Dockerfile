@@ -3,9 +3,16 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG INTERNAL_API_URL
+ARG TOSS_CLIENT_KEY
 
-RUN echo "Building with API URL: $NEXT_PUBLIC_API_URL"
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV INTERNAL_API_URL=${INTERNAL_API_URL}
+ENV TOSS_CLIENT_KEY=${TOSS_CLIENT_KEY}
+
+RUN echo "Building with API URL: $NEXT_PUBLIC_API_URL" \
+  && echo "Building with INTERNAL_API_URL: $INTERNAL_API_URL" \
+  && echo "Building with TOSS_CLIENT_KEY provided: $(if [ -n "$TOSS_CLIENT_KEY" ]; then echo "Yes"; else echo "No"; fi)"
 
 COPY package*.json ./
 RUN npm install

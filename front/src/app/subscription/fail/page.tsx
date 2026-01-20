@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+// Next.js 13+ App Router에서 useSearchParams()를 사용할 때는 dynamic 렌더링 필요
+export const dynamic = 'force-dynamic';
 
 const defaultMessage =
   '카드 등록에 실패했습니다. 다른 카드로 다시 시도해주세요.';
 
-export default function SubscriptionFailPage() {
+function SubscriptionFailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState(defaultMessage);
@@ -48,6 +51,18 @@ export default function SubscriptionFailPage() {
         잠시 후 자동으로 홈으로 이동합니다.
       </p>
     </div>
+  );
+}
+
+export default function SubscriptionFailPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-6 py-16 text-center text-white">
+        <div className="text-white/60">로딩 중...</div>
+      </div>
+    }>
+      <SubscriptionFailContent />
+    </Suspense>
   );
 }
 

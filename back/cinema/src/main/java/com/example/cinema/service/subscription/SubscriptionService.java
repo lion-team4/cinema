@@ -115,10 +115,9 @@ public class SubscriptionService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        Subscription subscription = subscriptionRepository.findBySubscriber(user)
-                .orElseThrow(() -> new BusinessException("구독 정보를 찾을 수 없습니다.", ErrorCode.ENTITY_NOT_FOUND));
-
-        return SubscriptionResponse.from(subscription);
+        return subscriptionRepository.findBySubscriber(user)
+                .map(SubscriptionResponse::from)
+                .orElse(null);
     }
 
 
