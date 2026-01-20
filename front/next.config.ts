@@ -16,14 +16,16 @@ const nextConfig: NextConfig = {
   // 현재는 한국어만 사용하므로 i18n 설정을 제거했습니다.
   async rewrites() {
     return {
+      beforeFiles: [
+        { source: "/contents", destination: `${backendUrl}/contents` },
+        { source: "/schedules", destination: `${backendUrl}/schedules` },
+      ],
       afterFiles: [
         { source: "/auth/:path*", destination: `${backendUrl}/auth/:path*` },
         { source: "/users/:path*", destination: `${backendUrl}/users/:path*` },
-        { source: "/contents", destination: `${backendUrl}/contents` },
         { source: "/contents/:path*", destination: `${backendUrl}/contents/:path*` },
         { source: "/api/:path*", destination: `${backendUrl}/api/:path*` },
         { source: "/media-assets/:path*", destination: `${backendUrl}/media-assets/:path*` },
-        { source: "/schedules", destination: `${backendUrl}/schedules` },
         { source: "/schedules/:path*", destination: `${backendUrl}/schedules/:path*` },
         { source: "/ws/:path*", destination: `${backendUrl}/ws/:path*` },
         { source: "/ws-sockjs/:path*", destination: `${backendUrl}/ws-sockjs/:path*` },
