@@ -20,10 +20,22 @@ fi
 
 EC2_IP=$1
 API_URL=${2:-"http://${EC2_IP}:8080"}
+if [ -n "$NEXT_PUBLIC_WS_URL" ]; then
+    WS_URL=$NEXT_PUBLIC_WS_URL
+else
+    if [[ "$API_URL" == https:* ]]; then
+        WS_URL=${API_URL/https:/wss:}
+    else
+        WS_URL=${API_URL/http:/ws:}
+    fi
+    WS_URL=${WS_URL%/}
+    WS_URL="${WS_URL}/ws"
+fi
 
 echo -e "${GREEN}=== EC2 배포 시작 ===${NC}"
 echo -e "EC2 IP: ${YELLOW}${EC2_IP}${NC}"
 echo -e "API URL: ${YELLOW}${API_URL}${NC}"
+echo -e "WS URL: ${YELLOW}${WS_URL}${NC}"
 
 # Docker Hub 로그인 확인
 echo -e "\n${GREEN}[0/5] Docker Hub 로그인 확인 중...${NC}"
@@ -48,6 +60,7 @@ echo -e "\n${GREEN}[2/5] 프론트엔드 Docker 이미지 빌드 중...${NC}"
 docker build --no-cache \
   --platform linux/amd64 \
   --build-arg NEXT_PUBLIC_API_URL="${API_URL}" \
+  --build-arg NEXT_PUBLIC_WS_URL="${WS_URL}" \
   -t jeongbeomgyu/cinema-frontend:latest ./front
 
 # Docker Hub에 푸시
@@ -69,6 +82,7 @@ echo -e "\n${GREEN}[5/5] EC2에서 배포 실행 중...${NC}"
 ssh -o StrictHostKeyChecking=no ec2-user@${EC2_IP} << EOF || ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} << EOF
     cd ~/cinema
     export NEXT_PUBLIC_API_URL=${API_URL}
+    export NEXT_PUBLIC_WS_URL=${WS_URL}
     chmod +x deploy-ec2.sh
     ./deploy-ec2.sh
 EOF
