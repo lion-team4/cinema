@@ -89,8 +89,7 @@ export default function TheatersPage() {
     const { data } = await api.get<ApiResponse<PageResponse<ScheduleSearchResponse>>>('/schedules', {
       params: { page: 0, size: 200 },
     });
-    const list = data.data?.content ?? [];
-    return list.filter((item) => item.status === 'WAITING' || item.status === 'PLAYING');
+    return data.data?.content ?? [];
   };
 
   const loadReviews = async (contentId: number) => {
@@ -312,13 +311,30 @@ export default function TheatersPage() {
 
   const playingSchedules = useMemo(() => schedules.filter((s) => s.status === 'PLAYING'), [schedules]);
   const waitingSchedules = useMemo(() => schedules.filter((s) => s.status === 'WAITING'), [schedules]);
+  const upcomingSchedules = useMemo(
+    () =>
+      schedules.filter(
+        (s) => s.status === 'CLOSED' && new Date(s.startAt).getTime() > now
+      ),
+    [now, schedules]
+  );
+  const activeSchedules = useMemo(
+    () => [...waitingSchedules, ...playingSchedules],
+    [playingSchedules, waitingSchedules]
+  );
+
+  const getScheduleLabel = (schedule: ScheduleSearchResponse) => {
+    if (schedule.status === 'PLAYING') return '상영 중';
+    if (schedule.status === 'WAITING') return '대기 중';
+    return '상영 예정';
+  };
   const topSchedules = useMemo(() => {
-    const scored = schedules.map((schedule) => ({
+    const scored = activeSchedules.map((schedule) => ({
       schedule,
       viewers: viewerCounts[schedule.scheduleItemId] ?? 0,
     }));
     return scored.sort((a, b) => b.viewers - a.viewers).slice(0, 3);
-  }, [schedules, viewerCounts]);
+  }, [activeSchedules, viewerCounts]);
 
   const formatRemain = (target: string) => {
     const diff = new Date(target).getTime() - now;
@@ -357,7 +373,7 @@ export default function TheatersPage() {
                 )}
               </div>
               <div className="mt-3 flex items-center justify-between text-xs text-white/60">
-                <Badge>{schedule.status === 'PLAYING' ? '상영 중' : '대기 중'}</Badge>
+                <Badge>{getScheduleLabel(schedule)}</Badge>
                 <span>동접 {viewerCounts[schedule.scheduleItemId] ?? 0}명</span>
               </div>
               <div className="mt-1 text-xs text-white/50">
@@ -434,7 +450,12 @@ export default function TheatersPage() {
 
       {!loading && !error && playingSchedules.length > 0 && renderScheduleCards(playingSchedules, '상영 중')}
       {!loading && !error && waitingSchedules.length > 0 && renderScheduleCards(waitingSchedules, '대기 중')}
-      {!loading && !error && playingSchedules.length === 0 && waitingSchedules.length === 0 && (
+      {!loading && !error && upcomingSchedules.length > 0 && renderScheduleCards(upcomingSchedules, '상영 예정')}
+      {!loading &&
+        !error &&
+        playingSchedules.length === 0 &&
+        waitingSchedules.length === 0 &&
+        upcomingSchedules.length === 0 && (
         <div className="mt-10 rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/70">
           현재 상영 중인 콘텐츠가 없습니다.
         </div>
@@ -518,16 +539,26 @@ export default function TheatersPage() {
 
                 <div className="mt-6 rounded-lg border border-white/10 bg-white/5 p-4 card">
                   <h3 className="text-sm font-semibold section-title">상영 일정</h3>
-                  {detailSchedules.filter((s) => s.status === 'WAITING' || s.status === 'PLAYING').length === 0 ? (
+                  {detailSchedules.filter(
+                    (s) =>
+                      s.status === 'WAITING' ||
+                      s.status === 'PLAYING' ||
+                      (s.status === 'CLOSED' && new Date(s.startAt).getTime() > now)
+                  ).length === 0 ? (
                     <p className="mt-2 text-sm text-white/60">상영 예정이 없습니다.</p>
                   ) : (
                     <div className="mt-3 space-y-2 text-sm text-white/70">
                       {detailSchedules
-                        .filter((s) => s.status === 'WAITING' || s.status === 'PLAYING')
+                        .filter(
+                          (s) =>
+                            s.status === 'WAITING' ||
+                            s.status === 'PLAYING' ||
+                            (s.status === 'CLOSED' && new Date(s.startAt).getTime() > now)
+                        )
                         .map((schedule) => (
                           <div key={schedule.scheduleItemId} className="flex items-center justify-between gap-3">
                             <span>
-                              {schedule.status === 'PLAYING' ? '상영 중' : '대기 중'} · {formatKst(schedule.startAt)}
+                              {getScheduleLabel(schedule)} · {formatKst(schedule.startAt)}
                             </span>
                             <Button
                               variant="primary"
