@@ -42,7 +42,7 @@ export default function ContentEditPage() {
   useEffect(() => {
     if (!hasHydrated) return;
     if (!user) {
-      router.push('/login?redirect=/contents/manage');
+      router.push('/login?redirect=/schedules/manage');
       return;
     }
 
@@ -146,7 +146,7 @@ export default function ContentEditPage() {
     try {
       setSaving(true);
       await api.delete(`/contents/${detail.contentId}`);
-      router.push('/contents/manage');
+      router.push('/schedules/manage');
     } catch (err: any) {
       setError(err.response?.data?.message || '콘텐츠 삭제에 실패했습니다.');
     } finally {
@@ -242,10 +242,10 @@ export default function ContentEditPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">콘텐츠 수정</h1>
         <a
-          href="/contents/manage"
+          href="/schedules/manage"
           className="text-sm text-white/60 hover:text-white transition-colors"
         >
-          목록으로 돌아가기
+          스튜디오로 돌아가기
         </a>
       </div>
 

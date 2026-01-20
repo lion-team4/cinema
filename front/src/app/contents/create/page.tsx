@@ -189,7 +189,7 @@ export default function ContentCreatePage() {
         videoHlsMasterAssetId: null,
       });
       setNotice('임시 저장되었습니다.');
-      router.push('/contents/manage');
+      router.push('/schedules/manage');
     } catch (err: any) {
       setError(err.response?.data?.message || '임시 저장에 실패했습니다.');
     } finally {
