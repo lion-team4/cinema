@@ -51,13 +51,8 @@ jobs:
       - name: Build APP_ENV (DEV)
         # (기존과 동일하게 환경변수들을 세팅합니다)
         env:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           AWS_CLOUDFRONT_DOMAIN: ${{ secrets.AWS_CLOUDFRONT_DOMAIN }}
           CLOUDFRONT_DOMAIN: ${{ secrets.CLOUDFRONT_DOMAIN }}
@@ -65,17 +60,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           TOSS_CLIENT_KEY: ${{ secrets.TOSS_CLIENT_KEY }}
           TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
-          TOSS_URL: ${{ secrets.TOSS_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          SPRING_JPA_DDL_AUTO: ${{ secrets.SPRING_JPA_DDL_AUTO }}
-          SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: ${{ secrets.SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT }}
-          FFMPEG_DOCKER_IMAGE: ${{ secrets.FFMPEG_DOCKER_IMAGE }}
-          FFMPEG_WORK_DIR: ${{ secrets.FFMPEG_WORK_DIR }}
-          FFMPEG_HLS_SEGMENT_SECONDS: ${{ secrets.FFMPEG_HLS_SEGMENT_SECONDS }}
-          ENCODING_POOL_SIZE: ${{ secrets.ENCODING_POOL_SIZE }}
-          ENCODING_QUEUE: ${{ secrets.ENCODING_QUEUE }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-          FRONTEND_IMAGE: ${{ env.FRONTEND_IMAGE_URI }}
         run: |
           : > app.env
           add_env() {
@@ -95,7 +81,6 @@ jobs:
           add_env TOSS_SECRET_KEY "$TOSS_SECRET_KEY"
           add_env JWT_SECRET "$JWT_SECRET"
           add_env NEXT_PUBLIC_API_URL "$NEXT_PUBLIC_API_URL"
-          add_env FRONTEND_IMAGE "$FRONTEND_IMAGE"
 
           {
             echo "APP_ENV<<APPENV"
@@ -104,7 +89,11 @@ jobs:
           } >> "$GITHUB_ENV"
 
           COMPOSE_B64=$(base64 -w0 docker-compose.yml)
-          echo "COMPOSE_B64=$COMPOSE_B64" >> "$GITHUB_ENV"
+          {
+            echo "COMPOSE_B64<<COMPOSE"
+            echo "${COMPOSE_B64}"
+            echo "COMPOSE"
+          } >> "$GITHUB_ENV"
 
       - name: Deploy on EC2 via SSM (DEV)
         env:
@@ -134,8 +123,8 @@ jobs:
               \"echo FRONTEND_IMAGE=$FRONTEND_IMAGE | sudo tee -a image.env > /dev/null\",
               \"echo $COMPOSE_B64 | base64 -d | sudo tee docker-compose.yml > /dev/null\",
               \"echo $TOKEN_B64 | base64 -d | sudo docker login -u $DOCKERHUB_USERNAME --password-stdin\",
-              \"sudo docker compose -f docker-compose.yml --env-file image.env pull\",
-              \"sudo docker compose -f docker-compose.yml --env-file image.env up -d\",
+              \"sudo docker compose -f docker-compose.yml --env-file .env --env-file image.env pull\",
+              \"sudo docker compose -f docker-compose.yml --env-file .env --env-file image.env up -d\",
               \"sudo docker image prune -f\"
             ]" \
             --query "Command.CommandId" \
