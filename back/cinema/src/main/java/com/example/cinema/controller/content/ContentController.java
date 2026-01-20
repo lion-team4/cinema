@@ -116,7 +116,7 @@ public class ContentController {
     }
 
     @GetMapping("/tags")
-    public ResponseEntity<ApiResponse<TagResponse>> getTags(@RequestParam String name) {
+    public ResponseEntity<ApiResponse<TagResponse>> getTags(@RequestParam(name = "tag") String name) {
         TagResponse response = tagService.getTag(name);
         return ResponseEntity.ok(ApiResponse.success("태그 검색 성공", response));
     }
@@ -124,6 +124,7 @@ public class ContentController {
     @PostMapping("/tags")
     public ResponseEntity<ApiResponse<TagResponse>> addTags(@RequestBody TagCreateRequest tagCreateRequest) {
         TagResponse response = tagService.addTag(tagCreateRequest);
-        return ResponseEntity.ok(ApiResponse.success("태그 생성 성공", response));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("태그 생성 성공", response));
     }
 }
