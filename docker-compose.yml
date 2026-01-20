@@ -32,6 +32,11 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    volumes:
+      # Docker 소켓 마운트 (ffmpeg Docker 실행용)
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 작업 디렉토리 공유 (호스트와 ffmpeg 컨테이너 간)
+      - /tmp/cinema-work:/tmp/cinema-work
     environment:
       # Database
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/cinema-db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
@@ -63,6 +68,7 @@ services:
       CLOUDFRONT_DOMAIN: ${CLOUDFRONT_DOMAIN:-${AWS_CLOUDFRONT_DOMAIN}}
       
       # FFmpeg
+      FFMPEG_MODE: ${FFMPEG_MODE:-docker}
       FFMPEG_DOCKER_IMAGE: ${FFMPEG_DOCKER_IMAGE:-jrottenberg/ffmpeg:6.1-alpine}
       FFMPEG_WORK_DIR: ${FFMPEG_WORK_DIR:-/tmp/cinema-work}
       FFMPEG_HLS_SEGMENT_SECONDS: ${FFMPEG_HLS_SEGMENT_SECONDS:-6}

@@ -1,8 +1,8 @@
 spring:
   application:
     name: cinema
-  profiles:
-    active: prod
+#  profiles:
+#    active: prod  # 로컬에서는 주석처리, 배포 시 환경변수로 설정
 
   datasource:
     url: jdbc:mysql://localhost:3306/cinema_db
@@ -47,7 +47,9 @@ cloudfront:
   domain: https://d3q8b3ts21eo3m.cloudfront.net
 
 ffmpeg:
+  mode: local  # local 또는 docker
   binary: ffmpeg
+  docker_image: jrottenberg/ffmpeg:6.1-alpine
   work_dir: /tmp/cinema-work
   hls_segment_seconds: 6
 
