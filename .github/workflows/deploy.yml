@@ -42,10 +42,13 @@ jobs:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           AWS_CLOUDFRONT_DOMAIN: ${{ secrets.AWS_CLOUDFRONT_DOMAIN }}
           CLOUDFRONT_DOMAIN: ${{ secrets.CLOUDFRONT_DOMAIN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           TOSS_CLIENT_KEY: ${{ secrets.TOSS_CLIENT_KEY }}
           TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
           TOSS_URL: ${{ secrets.TOSS_URL }}
@@ -57,6 +60,8 @@ jobs:
           FFMPEG_HLS_SEGMENT_SECONDS: ${{ secrets.FFMPEG_HLS_SEGMENT_SECONDS }}
           ENCODING_POOL_SIZE: ${{ secrets.ENCODING_POOL_SIZE }}
           ENCODING_QUEUE: ${{ secrets.ENCODING_QUEUE }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          FRONTEND_IMAGE: ${{ secrets.FRONTEND_IMAGE }}
         run: |
           {
             echo "APP_ENV<<EOF"
@@ -65,10 +70,13 @@ jobs:
             echo "DB_NAME=${DB_NAME}"
             echo "DB_USERNAME=${DB_USERNAME}"
             echo "DB_PASSWORD=${DB_PASSWORD}"
+            echo "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}"
             echo "AWS_REGION=${AWS_REGION}"
             echo "AWS_S3_BUCKET=${AWS_S3_BUCKET}"
             echo "AWS_CLOUDFRONT_DOMAIN=${AWS_CLOUDFRONT_DOMAIN}"
             echo "CLOUDFRONT_DOMAIN=${CLOUDFRONT_DOMAIN}"
+            echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
+            echo "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
             echo "TOSS_CLIENT_KEY=${TOSS_CLIENT_KEY}"
             echo "TOSS_SECRET_KEY=${TOSS_SECRET_KEY}"
             echo "TOSS_URL=${TOSS_URL}"
@@ -80,6 +88,8 @@ jobs:
             echo "FFMPEG_HLS_SEGMENT_SECONDS=${FFMPEG_HLS_SEGMENT_SECONDS}"
             echo "ENCODING_POOL_SIZE=${ENCODING_POOL_SIZE}"
             echo "ENCODING_QUEUE=${ENCODING_QUEUE}"
+            echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}"
+            echo "FRONTEND_IMAGE=${FRONTEND_IMAGE}"
             echo "EOF"
           } >> $GITHUB_ENV
 
