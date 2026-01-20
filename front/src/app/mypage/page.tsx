@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { type ApiResponse, type SubscriptionResponse } from '@/types';
+import axios from 'axios';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
-import SectionHeader from '@/components/ui/SectionHeader';
 
 type UserProfileResponse = {
   userId: number;
@@ -55,6 +55,10 @@ export default function MyPage() {
   const [detailInfo, setDetailInfo] = useState<ContentDetailResponse | null>(null);
   const [detailTotalView, setDetailTotalView] = useState<number | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
+  const [profileUploading, setProfileUploading] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [profilePreview, setProfilePreview] = useState<string | null>(null);
+  const profileInputRef = useRef<HTMLInputElement | null>(null);
 
   // 회원 탈퇴
   const [showWithdraw, setShowWithdraw] = useState(false);
@@ -224,6 +228,55 @@ export default function MyPage() {
     return `https://${value}`;
   };
 
+  const profileImageUrl = normalizeUrl(profilePreview || user?.profileImage || null);
+
+  const handleProfileImageChange = async (file: File) => {
+    if (!user) return;
+    setProfileUploading(true);
+    setProfileError('');
+    try {
+      const presign = await api.post<ApiResponse<{ uploadUrl: string; objectKey: string }>>('/api/assets/presign', {
+        fileName: file.name,
+        contentType: file.type,
+        assetType: 'PROFILE_IMAGE',
+        ownerUserId: user.userId,
+      });
+      const { uploadUrl, objectKey } = presign.data.data;
+      await axios.put(uploadUrl, file, { headers: { 'Content-Type': file.type } });
+      const complete = await api.post<ApiResponse<{ cdnUrl: string | null; assetId: number | null }>>('/api/assets/complete', {
+        assetType: 'PROFILE_IMAGE',
+        ownerUserId: user.userId,
+        objectKey,
+        contentType: file.type,
+      });
+      const cdnUrl = complete.data.data?.cdnUrl ?? null;
+      const assetId = complete.data.data?.assetId ?? null;
+      setProfilePreview(cdnUrl);
+      if (assetId) {
+        await api.patch<ApiResponse<UserProfileResponse>>('/users/me', {
+          profileImageAssetId: assetId,
+        });
+        const refreshed = await api.get<ApiResponse<UserProfileResponse>>('/users/me');
+        const profile = refreshed.data.data;
+        if (profile) {
+          setUser({
+            userId: profile.userId,
+            email: profile.email,
+            nickname: profile.nickname,
+            profileImage: profile.profileImageUrl ?? null,
+            seller: profile.seller,
+          });
+        }
+      } else if (cdnUrl) {
+        setUser({ ...user, profileImage: cdnUrl });
+      }
+    } catch (err: any) {
+      setProfileError(err.response?.data?.message || '프로필 이미지 업로드에 실패했습니다.');
+    } finally {
+      setProfileUploading(false);
+    }
+  };
+
   const openDetailModal = async (title: string) => {
     try {
       setDetailOpen(true);
@@ -270,12 +323,14 @@ export default function MyPage() {
     }
   };
 
+  const billingLabel = subscription?.billingProvider
+    ? subscription.billingProvider === 'TOSS'
+      ? 'Toss'
+      : subscription.billingProvider
+    : 'Toss';
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-white">
-      <SectionHeader
-        title="마이페이지"
-        subtitle="개인 정보를 확인하고 수정할 수 있습니다."
-      />
 
       {loading && (
         <div className="mt-8 rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/60">
@@ -285,6 +340,44 @@ export default function MyPage() {
 
       {!loading && (
         <>
+          <div className="relative mt-6">
+            <div className="h-36 w-full overflow-hidden rounded-2xl bg-black/90">
+              {profileImageUrl ? (
+                <img src={profileImageUrl} alt="프로필 이미지" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full" />
+              )}
+              <div className="absolute inset-0 flex flex-col justify-center bg-gradient-to-r from-black/70 via-black/40 to-transparent px-6">
+                <h1 className="text-2xl font-semibold section-title">마이페이지</h1>
+                <p className="mt-1 text-sm text-white/70">개인 정보를 확인하고 수정할 수 있습니다.</p>
+              </div>
+            </div>
+            <div className="absolute right-4 top-4 flex items-center gap-2">
+              <input
+                ref={profileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) handleProfileImageChange(file);
+                }}
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => profileInputRef.current?.click()}
+                disabled={profileUploading}
+              >
+                {profileUploading ? '업로드 중...' : '프로필 변경'}
+              </Button>
+            </div>
+            {profileError && (
+              <div className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
+                {profileError}
+              </div>
+            )}
+          </div>
           {subscription?.status === 'ACTIVE' && (
             <Card className="mt-6 p-6" hover>
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -299,7 +392,7 @@ export default function MyPage() {
               <div className="mt-4 grid gap-2 text-sm text-white/70 sm:grid-cols-2">
                 <div>
                   <span className="text-white/50">결제 수단</span>
-                  <p className="mt-1">{subscription.billingProvider}</p>
+                  <p className="mt-1">{billingLabel}</p>
                 </div>
                 <div>
                   <span className="text-white/50">다음 결제일</span>

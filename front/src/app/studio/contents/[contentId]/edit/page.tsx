@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { type ApiResponse } from '@/types';
 import axios from 'axios';
+import Button from '@/components/ui/Button';
 
 type ContentEditResponse = {
   contentId: number;
@@ -344,15 +345,28 @@ export default function ContentEditPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white/80 mb-1">공개 상태</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ContentEditResponse['status'])}
-                className="w-full rounded-md border border-white/10 bg-black px-4 py-2 text-white focus:ring-red-500 focus:border-red-500"
-              >
-                <option value="PUBLISHED" className="bg-black text-white">공개</option>
-                <option value="DRAFT" className="bg-black text-white">임시 저장</option>
-              </select>
+              <label className="block text-sm font-medium text-white/80 mb-2">공개 상태</label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 'PUBLISHED', label: '공개' },
+                  { value: 'DRAFT', label: '임시 저장' },
+                  { value: 'PRIVATE', label: '비공개' },
+                ].map((option) => (
+                  <Button
+                    key={option.value}
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setStatus(option.value as ContentEditResponse['status'])}
+                    className={
+                      status === option.value
+                        ? 'bg-red-500/20 text-red-100 border-red-500/60'
+                        : 'text-white/60 hover:text-white hover:border-red-400/60'
+                    }
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
             </div>
 
             {notice && (

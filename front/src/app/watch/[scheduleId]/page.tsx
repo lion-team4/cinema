@@ -242,7 +242,7 @@ export default function WatchPage() {
 
       client.onStompError = () => {
         if (mounted) {
-          setError('상영장 연결에 실패했습니다.');
+        setError('상영장 연결에 실패했습니다.');
         }
       };
 
@@ -271,7 +271,7 @@ export default function WatchPage() {
       }
       // 이 effect에서 성공한 경우에만 leave 호출
       if (localEntered) {
-        api.post(`/theaters/${scheduleId}/leave`).catch(() => {});
+      api.post(`/theaters/${scheduleId}/leave`).catch(() => {});
       }
     };
   }, [accessToken, scheduleId]);
@@ -488,13 +488,13 @@ export default function WatchPage() {
       }
     >
       {!isFullView ? (
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="text-sm text-white/60 hover:text-white transition-colors"
-        >
-          ← 검색으로 돌아가기
-        </button>
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="text-sm text-white/60 hover:text-white transition-colors"
+      >
+        ← 검색으로 돌아가기
+      </button>
       ) : (
         <div className="absolute left-4 right-4 top-4 z-10 flex items-center justify-between">
           <button
@@ -520,12 +520,12 @@ export default function WatchPage() {
 
       <div className={isFullView ? 'h-full' : 'mt-4 rounded-2xl border border-white/10 bg-white/5 p-6'}>
         {!isFullView && (
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">
                 {scheduleInfo?.contentTitle ?? '상영장'}
               </h1>
-              {state && (
+          {state && (
                 <span className={`rounded-full border px-3 py-1 text-xs ${
                   state.status === 'PLAYING'
                     ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-200'
@@ -534,9 +534,9 @@ export default function WatchPage() {
                       : 'border-white/20 text-white/70'
                 }`}>
                   {state.status === 'PLAYING' ? '상영 중' : state.status === 'WAITING' ? '대기 중' : '종료'}
-                </span>
-              )}
-            </div>
+            </span>
+          )}
+        </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -611,7 +611,7 @@ export default function WatchPage() {
                 {statusMessage && (
                   <div className="absolute left-3 top-3 z-10 rounded-lg border border-white/20 bg-black/70 px-3 py-2 text-xs text-white/90">
                     {statusMessage}
-                  </div>
+            </div>
                 )}
                 {needsUserPlay && (
                   <button
@@ -622,7 +622,7 @@ export default function WatchPage() {
                     재생하려면 클릭하세요
                   </button>
                 )}
-                <video
+            <video
                   ref={videoRef}
                   playsInline
                   controls={false}
@@ -697,7 +697,7 @@ export default function WatchPage() {
                     onKeyDown={handleChatKeyDown}
                     placeholder="메시지를 입력하세요 (Enter로 전송)"
                     className="flex-1 rounded-md border border-white/10 bg-black/60 px-3 py-2 text-sm text-white placeholder:text-white/40"
-                  />
+            />
                   <button
                     type="button"
                     onClick={handleSendChat}

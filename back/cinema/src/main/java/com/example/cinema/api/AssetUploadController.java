@@ -91,7 +91,7 @@ public class AssetUploadController {
     ) {
     }
 
-    public record CompleteRes(String status, String cdnUrl, String jobId) {
+    public record CompleteRes(String status, String cdnUrl, String jobId, Long assetId) {
     }
 
     @PostMapping("/complete")
@@ -120,7 +120,7 @@ public class AssetUploadController {
             mediaAssetService.attachToContent(content, AssetType.POSTER_IMAGE, poster);
 
             return ApiResponse.success("poster uploaded",
-                    new CompleteRes("OK", "https://" + cfDomain + "/" + req.objectKey(), null));
+                    new CompleteRes("OK", "https://" + cfDomain + "/" + req.objectKey(), null, poster.getAssetId()));
         }
 
         if (req.assetType() == AssetType.VIDEO_SOURCE) {
@@ -142,7 +142,7 @@ public class AssetUploadController {
 
             String jobId = encodingJobService.start(req.contentId());
             return ApiResponse.success("encoding started",
-                    new CompleteRes("PROCESSING", null, jobId));
+                    new CompleteRes("PROCESSING", null, jobId, src.getAssetId()));
         }
 
         if (req.assetType() == AssetType.PROFILE_IMAGE) {
@@ -150,12 +150,12 @@ public class AssetUploadController {
                     req.objectKey(), imageMinBytes, "image/", 3, new long[]{300, 600, 1200}
             );
 
-            mediaAssetService.createAsset(
+            MediaAsset profileAsset = mediaAssetService.createAsset(
                     owner, AssetType.PROFILE_IMAGE, req.objectKey(), req.contentType(), visibility, head, null
             );
 
             return ApiResponse.success("profile image uploaded",
-                    new CompleteRes("OK", "https://" + cfDomain + "/" + req.objectKey(), null));
+                    new CompleteRes("OK", "https://" + cfDomain + "/" + req.objectKey(), null, profileAsset.getAssetId()));
         }
 
         throw new IllegalArgumentException("Unsupported complete type: " + req.assetType());
@@ -165,6 +165,6 @@ public class AssetUploadController {
     public ApiResponse<CompleteRes> retry(@PathVariable long contentId) {
         String jobId = encodingJobService.start(contentId);
         return ApiResponse.success("encoding retry started",
-                new CompleteRes("PROCESSING", null, jobId));
+                new CompleteRes("PROCESSING", null, jobId, null));
     }
 }

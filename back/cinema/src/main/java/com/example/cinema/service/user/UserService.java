@@ -16,6 +16,7 @@ import com.example.cinema.repository.mediaAsset.MediaAssetRepository;
 import com.example.cinema.repository.user.UserRepository;
 import com.example.cinema.repository.watchHistory.WatchHistoryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -39,11 +40,14 @@ public class UserService {
     private final JwtTokenProvider jwtTokenProvider;
     private final com.example.cinema.repository.auth.RefreshTokenRepository refreshTokenRepository;
 
+    @Value("${aws.cloudfront.domain}")
+    private String cfDomain;
+
 
     public UserGetResponse getProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        return UserGetResponse.from(user);
+        return UserGetResponse.from(user, cfDomain);
     }
 
     @Transactional

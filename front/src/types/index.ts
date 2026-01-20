@@ -69,5 +69,5 @@ export interface SubscriptionResponse {
   id: number;
   status: 'ACTIVE' | 'EXPIRED' | 'CANCELED';
   nextPaymentDate: string;
-  billingProvider: 'TOSS';
+  billingProvider?: 'TOSS' | string;
 }

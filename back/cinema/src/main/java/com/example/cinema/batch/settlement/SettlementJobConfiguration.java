@@ -42,7 +42,7 @@ public class SettlementJobConfiguration {
     public Job settlementJob() {
         return new JobBuilder("settlementJob", jobRepository)
             .start(processSettlementStep())
-//            .next(resetMonthViewStep())
+            .next(resetMonthViewStep())
             .build();
     }
     

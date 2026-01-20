@@ -82,12 +82,12 @@ export default function Home() {
                 영상 시청
               </a>
             ) : (
-              <a
-                href="/subscription"
-                className="inline-flex items-center justify-center rounded-md bg-red-600 px-6 py-3 text-sm font-semibold text-white hover:bg-red-500 transition-colors"
-              >
-                지금 구독하기
-              </a>
+            <a
+              href="/subscription"
+              className="inline-flex items-center justify-center rounded-md bg-red-600 px-6 py-3 text-sm font-semibold text-white hover:bg-red-500 transition-colors"
+            >
+              지금 구독하기
+            </a>
             )}
             <a
               href="/contents/create"
