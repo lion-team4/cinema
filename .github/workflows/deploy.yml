@@ -31,7 +31,7 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
           IMAGE_URI=${DOCKERHUB_USERNAME}/cinema-backend:dev-${GITHUB_SHA}
-          docker build -t $IMAGE_URI .
+          docker build -t $IMAGE_URI -f ./back/cinema/Dockerfile ./back/cinema
           docker push $IMAGE_URI
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
