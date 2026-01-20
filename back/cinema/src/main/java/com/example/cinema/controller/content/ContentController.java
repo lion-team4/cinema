@@ -4,8 +4,11 @@ import com.example.cinema.config.common.CustomUserDetails;
 import com.example.cinema.dto.common.ApiResponse;
 import com.example.cinema.dto.common.PageResponse;
 import com.example.cinema.dto.content.*;
+import com.example.cinema.dto.tag.TagCreateRequest;
+import com.example.cinema.dto.tag.TagResponse;
 import com.example.cinema.entity.Content;
 import com.example.cinema.service.content.ContentService;
+import com.example.cinema.service.tag.TagService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 public class ContentController {
 
     private final ContentService contentService;
+    private final TagService tagService;
 
     @Value("${aws.cloudfront.domain}")
     private String cfDomain;
@@ -109,5 +113,17 @@ public class ContentController {
         Content content = contentService.getContentDetail(contentId);
         ContentDetailResponse response = ContentDetailResponse.from(content, cfDomain);
         return ResponseEntity.ok(ApiResponse.success("콘텐츠 상세 조회 성공", response));
+    }
+
+    @GetMapping("/tags")
+    public ResponseEntity<ApiResponse<TagResponse>> getTags(@RequestParam String name) {
+        TagResponse response = tagService.getTag(name);
+        return ResponseEntity.ok(ApiResponse.success("태그 검색 성공", response));
+    }
+
+    @PostMapping("/tags")
+    public ResponseEntity<ApiResponse<TagResponse>> addTags(@RequestBody TagCreateRequest tagCreateRequest) {
+        TagResponse response = tagService.addTag(tagCreateRequest);
+        return ResponseEntity.ok(ApiResponse.success("태그 생성 성공", response));
     }
 }
