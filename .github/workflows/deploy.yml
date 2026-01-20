@@ -26,7 +26,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & Push (DEV)
+      - name: Build & Push Backend (DEV)
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
@@ -34,6 +34,15 @@ jobs:
           docker build -t $IMAGE_URI -f ./back/cinema/Dockerfile ./back/cinema
           docker push $IMAGE_URI
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+
+      - name: Build & Push Frontend (DEV)
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          FRONTEND_IMAGE_URI=${DOCKERHUB_USERNAME}/cinema-frontend:dev-${GITHUB_SHA}
+          docker build -t $FRONTEND_IMAGE_URI -f ./front/Dockerfile ./front
+          docker push $FRONTEND_IMAGE_URI
+          echo "FRONTEND_IMAGE_URI=$FRONTEND_IMAGE_URI" >> $GITHUB_ENV
 
       - name: Build APP_ENV (DEV)
         # (기존과 동일하게 환경변수들을 세팅합니다)
@@ -62,35 +71,27 @@ jobs:
           ENCODING_POOL_SIZE: ${{ secrets.ENCODING_POOL_SIZE }}
           ENCODING_QUEUE: ${{ secrets.ENCODING_QUEUE }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-          FRONTEND_IMAGE: ${{ secrets.FRONTEND_IMAGE }}
+          FRONTEND_IMAGE: ${{ env.FRONTEND_IMAGE_URI }}
         run: |
-          cat <<'APPENV' > app.env
-          DB_HOST=${DB_HOST}
-          DB_PORT=${DB_PORT}
-          DB_NAME=${DB_NAME}
-          DB_USERNAME=${DB_USERNAME}
-          DB_PASSWORD=${DB_PASSWORD}
-          MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-          AWS_REGION=${AWS_REGION}
-          AWS_S3_BUCKET=${AWS_S3_BUCKET}
-          AWS_CLOUDFRONT_DOMAIN=${AWS_CLOUDFRONT_DOMAIN}
-          CLOUDFRONT_DOMAIN=${CLOUDFRONT_DOMAIN}
-          AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-          AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-          TOSS_CLIENT_KEY=${TOSS_CLIENT_KEY}
-          TOSS_SECRET_KEY=${TOSS_SECRET_KEY}
-          TOSS_URL=${TOSS_URL}
-          JWT_SECRET=${JWT_SECRET}
-          SPRING_JPA_DDL_AUTO=${SPRING_JPA_DDL_AUTO}
-          SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=${SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT}
-          FFMPEG_DOCKER_IMAGE=${FFMPEG_DOCKER_IMAGE}
-          FFMPEG_WORK_DIR=${FFMPEG_WORK_DIR}
-          FFMPEG_HLS_SEGMENT_SECONDS=${FFMPEG_HLS_SEGMENT_SECONDS}
-          ENCODING_POOL_SIZE=${ENCODING_POOL_SIZE}
-          ENCODING_QUEUE=${ENCODING_QUEUE}
-          NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-          FRONTEND_IMAGE=${FRONTEND_IMAGE}
-          APPENV
+          : > app.env
+          add_env() {
+            if [ -n "$2" ]; then
+              echo "$1=$2" >> app.env
+            fi
+          }
+
+          add_env DB_PASSWORD "$DB_PASSWORD"
+          add_env MYSQL_ROOT_PASSWORD "$MYSQL_ROOT_PASSWORD"
+          add_env AWS_S3_BUCKET "$AWS_S3_BUCKET"
+          add_env AWS_CLOUDFRONT_DOMAIN "$AWS_CLOUDFRONT_DOMAIN"
+          add_env CLOUDFRONT_DOMAIN "$CLOUDFRONT_DOMAIN"
+          add_env AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
+          add_env AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
+          add_env TOSS_CLIENT_KEY "$TOSS_CLIENT_KEY"
+          add_env TOSS_SECRET_KEY "$TOSS_SECRET_KEY"
+          add_env JWT_SECRET "$JWT_SECRET"
+          add_env NEXT_PUBLIC_API_URL "$NEXT_PUBLIC_API_URL"
+          add_env FRONTEND_IMAGE "$FRONTEND_IMAGE"
 
           {
             echo "APP_ENV<<APPENV"
@@ -108,7 +109,7 @@ jobs:
           IMAGE_URI: ${{ env.IMAGE_URI }}
           APP_ENV: ${{ env.APP_ENV }}
           COMPOSE_B64: ${{ env.COMPOSE_B64 }}
-          FRONTEND_IMAGE: ${{ secrets.FRONTEND_IMAGE }}
+          FRONTEND_IMAGE: ${{ env.FRONTEND_IMAGE_URI }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |

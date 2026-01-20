@@ -22,7 +22,7 @@ spring:
       initialize-schema: always
 
 aws:
-  region: ${AWS_REGION:ap-northeast-2}
+  region: ap-northeast-2
   s3:
     bucket: ${AWS_S3_BUCKET}
   cloudfront:
@@ -34,15 +34,15 @@ cloudfront:
 toss:
   client-key: ${TOSS_CLIENT_KEY}
   secret-key: ${TOSS_SECRET_KEY}
-  url: ${TOSS_URL:https://api.tosspayments.com/v1}
+  url: https://api.tosspayments.com/v1
 
 jwt:
   secret: ${JWT_SECRET}
 
 ffmpeg:
-  docker_image: ${FFMPEG_DOCKER_IMAGE:jrottenberg/ffmpeg:6.1-alpine}
-  work_dir: ${FFMPEG_WORK_DIR:/tmp/cinema-work}
-  hls_segment_seconds: ${FFMPEG_HLS_SEGMENT_SECONDS:6}
+  docker_image: jrottenberg/ffmpeg:6.1-alpine
+  work_dir: /tmp/cinema-work
+  hls_segment_seconds: 6
 
 upload:
   verify:
@@ -51,8 +51,8 @@ upload:
 
 encoding:
   pool:
-    size: ${ENCODING_POOL_SIZE:2}
-  queue: ${ENCODING_QUEUE:50}
+    size: 2
+  queue: 50
 
 logging:
   level:
