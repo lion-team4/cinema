@@ -63,40 +63,46 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           FRONTEND_IMAGE: ${{ secrets.FRONTEND_IMAGE }}
         run: |
+          cat <<'APPENV' > app.env
+          DB_HOST=${DB_HOST}
+          DB_PORT=${DB_PORT}
+          DB_NAME=${DB_NAME}
+          DB_USERNAME=${DB_USERNAME}
+          DB_PASSWORD=${DB_PASSWORD}
+          MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+          AWS_REGION=${AWS_REGION}
+          AWS_S3_BUCKET=${AWS_S3_BUCKET}
+          AWS_CLOUDFRONT_DOMAIN=${AWS_CLOUDFRONT_DOMAIN}
+          CLOUDFRONT_DOMAIN=${CLOUDFRONT_DOMAIN}
+          AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+          AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+          TOSS_CLIENT_KEY=${TOSS_CLIENT_KEY}
+          TOSS_SECRET_KEY=${TOSS_SECRET_KEY}
+          TOSS_URL=${TOSS_URL}
+          JWT_SECRET=${JWT_SECRET}
+          SPRING_JPA_DDL_AUTO=${SPRING_JPA_DDL_AUTO}
+          SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=${SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT}
+          FFMPEG_DOCKER_IMAGE=${FFMPEG_DOCKER_IMAGE}
+          FFMPEG_WORK_DIR=${FFMPEG_WORK_DIR}
+          FFMPEG_HLS_SEGMENT_SECONDS=${FFMPEG_HLS_SEGMENT_SECONDS}
+          ENCODING_POOL_SIZE=${ENCODING_POOL_SIZE}
+          ENCODING_QUEUE=${ENCODING_QUEUE}
+          NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+          FRONTEND_IMAGE=${FRONTEND_IMAGE}
+          APPENV
+
           {
-            echo "APP_ENV<<EOF"
-            echo "DB_HOST=${DB_HOST}"
-            echo "DB_PORT=${DB_PORT}"
-            echo "DB_NAME=${DB_NAME}"
-            echo "DB_USERNAME=${DB_USERNAME}"
-            echo "DB_PASSWORD=${DB_PASSWORD}"
-            echo "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}"
-            echo "AWS_REGION=${AWS_REGION}"
-            echo "AWS_S3_BUCKET=${AWS_S3_BUCKET}"
-            echo "AWS_CLOUDFRONT_DOMAIN=${AWS_CLOUDFRONT_DOMAIN}"
-            echo "CLOUDFRONT_DOMAIN=${CLOUDFRONT_DOMAIN}"
-            echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
-            echo "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
-            echo "TOSS_CLIENT_KEY=${TOSS_CLIENT_KEY}"
-            echo "TOSS_SECRET_KEY=${TOSS_SECRET_KEY}"
-            echo "TOSS_URL=${TOSS_URL}"
-            echo "JWT_SECRET=${JWT_SECRET}"
-            echo "SPRING_JPA_DDL_AUTO=${SPRING_JPA_DDL_AUTO}"
-            echo "SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=${SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT}"
-            echo "FFMPEG_DOCKER_IMAGE=${FFMPEG_DOCKER_IMAGE}"
-            echo "FFMPEG_WORK_DIR=${FFMPEG_WORK_DIR}"
-            echo "FFMPEG_HLS_SEGMENT_SECONDS=${FFMPEG_HLS_SEGMENT_SECONDS}"
-            echo "ENCODING_POOL_SIZE=${ENCODING_POOL_SIZE}"
-            echo "ENCODING_QUEUE=${ENCODING_QUEUE}"
-            echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}"
-            echo "FRONTEND_IMAGE=${FRONTEND_IMAGE}"
-            echo "EOF"
-          } >> $GITHUB_ENV
+            echo "APP_ENV<<APPENV"
+            cat app.env
+            echo "APPENV"
+          } >> "$GITHUB_ENV"
+
+          COMPOSE_B64=$(base64 -w0 docker-compose.yml)
           {
-            echo "COMPOSE_B64<<EOF"
-            base64 -w0 docker-compose.yml
-            echo "EOF"
-          } >> $GITHUB_ENV
+            echo "COMPOSE_B64<<COMPOSE"
+            echo "${COMPOSE_B64}"
+            echo "COMPOSE"
+          } >> "$GITHUB_ENV"
 
       - name: Deploy on EC2 via SSM (DEV)
         env:
