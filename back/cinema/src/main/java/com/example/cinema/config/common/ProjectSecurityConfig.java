@@ -24,17 +24,6 @@ import static org.springframework.boot.autoconfigure.security.servlet.PathReques
 public class ProjectSecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
-    @Bean
-    @Order(0)
-    public SecurityFilterChain h2ConsoleSecurityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .securityMatcher(toH2Console())
-                .csrf(csrf -> csrf.disable())
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-
-        return http.build();
-    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -47,7 +36,6 @@ public class ProjectSecurityConfig {
     }
 
     @Bean
-    @Order(1)
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configure(http))
