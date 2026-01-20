@@ -16,6 +16,8 @@ RUN chmod +x gradlew && \
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
+RUN apk add --no-cache ffmpeg
+
 COPY --from=builder /app/build/libs/app.jar .
 
 EXPOSE 8080

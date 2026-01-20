@@ -2,7 +2,7 @@ package com.example.cinema.service.encoding;
 
 import com.example.cinema.exception.BusinessException;
 import com.example.cinema.exception.ErrorCode;
-import com.example.cinema.infra.ffmpeg.FfmpegDockerRunner;
+import com.example.cinema.infra.ffmpeg.FfmpegRunner;
 import com.example.cinema.infra.s3.S3ObjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +20,7 @@ import java.util.List;
 public class HlsTranscodeService {
 
     private final S3ObjectService s3ObjectService;
-    private final FfmpegDockerRunner ffmpeg;
+    private final FfmpegRunner ffmpeg;
 
     @Value("${ffmpeg.work_dir}")
     private String workDir;
