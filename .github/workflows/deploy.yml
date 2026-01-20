@@ -48,46 +48,8 @@ jobs:
           docker push $FRONTEND_IMAGE_URI
           echo "FRONTEND_IMAGE_URI=$FRONTEND_IMAGE_URI" >> $GITHUB_ENV
 
-      - name: Build APP_ENV (DEV)
-        # (기존과 동일하게 환경변수들을 세팅합니다)
-        env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_CLOUDFRONT_DOMAIN: ${{ secrets.AWS_CLOUDFRONT_DOMAIN }}
-          CLOUDFRONT_DOMAIN: ${{ secrets.CLOUDFRONT_DOMAIN }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          TOSS_CLIENT_KEY: ${{ secrets.TOSS_CLIENT_KEY }}
-          TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+      - name: Prepare compose (DEV)
         run: |
-          : > app.env
-          add_env() {
-            if [ -n "$2" ]; then
-              echo "$1=$2" >> app.env
-            fi
-          }
-
-          add_env DB_PASSWORD "$DB_PASSWORD"
-          add_env MYSQL_ROOT_PASSWORD "$MYSQL_ROOT_PASSWORD"
-          add_env AWS_S3_BUCKET "$AWS_S3_BUCKET"
-          add_env AWS_CLOUDFRONT_DOMAIN "$AWS_CLOUDFRONT_DOMAIN"
-          add_env CLOUDFRONT_DOMAIN "$CLOUDFRONT_DOMAIN"
-          add_env AWS_ACCESS_KEY_ID "$AWS_ACCESS_KEY_ID"
-          add_env AWS_SECRET_ACCESS_KEY "$AWS_SECRET_ACCESS_KEY"
-          add_env TOSS_CLIENT_KEY "$TOSS_CLIENT_KEY"
-          add_env TOSS_SECRET_KEY "$TOSS_SECRET_KEY"
-          add_env JWT_SECRET "$JWT_SECRET"
-          add_env NEXT_PUBLIC_API_URL "$NEXT_PUBLIC_API_URL"
-
-          {
-            echo "APP_ENV<<APPENV"
-            cat app.env
-            echo "APPENV"
-          } >> "$GITHUB_ENV"
-
           COMPOSE_B64=$(base64 -w0 docker-compose.yml)
           {
             echo "COMPOSE_B64<<COMPOSE"
@@ -100,13 +62,11 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
           IMAGE_URI: ${{ env.IMAGE_URI }}
-          APP_ENV: ${{ env.APP_ENV }}
           COMPOSE_B64: ${{ env.COMPOSE_B64 }}
           FRONTEND_IMAGE: ${{ env.FRONTEND_IMAGE_URI }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          ENV_B64=$(printf '%s' "$APP_ENV" | base64 -w0)
           TOKEN_B64=$(printf '%s' "$DOCKERHUB_TOKEN" | base64 -w0)
 
           # 1. SSM 명령 전송 및 Command ID 저장
@@ -118,7 +78,6 @@ jobs:
               \"set -e\",
               \"sudo mkdir -p /opt/cinema-backend\",
               \"cd /opt/cinema-backend\",
-              \"echo $ENV_B64 | base64 -d | sudo tee .env > /dev/null\",
               \"echo IMAGE=$IMAGE_URI | sudo tee image.env > /dev/null\",
               \"echo FRONTEND_IMAGE=$FRONTEND_IMAGE | sudo tee -a image.env > /dev/null\",
               \"echo $COMPOSE_B64 | base64 -d | sudo tee docker-compose.yml > /dev/null\",

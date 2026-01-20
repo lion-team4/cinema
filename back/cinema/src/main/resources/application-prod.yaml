@@ -24,12 +24,12 @@ spring:
 aws:
   region: ap-northeast-2
   s3:
-    bucket: ${AWS_S3_BUCKET}
+    bucket: lion-cinema-content-team4
   cloudfront:
-    domain: ${AWS_CLOUDFRONT_DOMAIN}
+    domain: https://d3q8b3ts21eo3m.cloudfront.net
 
 cloudfront:
-  domain: ${CLOUDFRONT_DOMAIN:${AWS_CLOUDFRONT_DOMAIN}}
+  domain: https://d3q8b3ts21eo3m.cloudfront.net
 
 toss:
   client-key: ${TOSS_CLIENT_KEY}
