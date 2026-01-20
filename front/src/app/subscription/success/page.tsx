@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiResponse } from '@/types';
 
-export default function SubscriptionSuccessPage() {
+// Next.js 13+ App Router에서 useSearchParams()를 사용할 때는 dynamic 렌더링 필요
+export const dynamic = 'force-dynamic';
+
+function SubscriptionSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
@@ -73,5 +76,18 @@ export default function SubscriptionSuccessPage() {
         </button>
       )}
     </div>
+  );
+}
+
+export default function SubscriptionSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-md mx-auto py-20 px-4 text-center text-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4" />
+        <p className="text-white/70">처리 중...</p>
+      </div>
+    }>
+      <SubscriptionSuccessContent />
+    </Suspense>
   );
 }
