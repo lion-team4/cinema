@@ -698,7 +698,7 @@ export default function WatchPage() {
               </div>
             </div>
             {viewMode === 'theater' && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex h-full flex-col">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex h-full min-h-0 flex-col">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">채팅</h2>
                   {viewerCount !== null && (
@@ -709,7 +709,7 @@ export default function WatchPage() {
                 </div>
                 <div
                   ref={chatContainerRef}
-                  className="mt-4 flex-1 min-h-[60vh] overflow-y-auto rounded-lg border border-white/10 bg-black/40 p-3 text-sm text-white/80"
+                  className="mt-4 flex-1 min-h-0 overflow-y-auto rounded-lg border border-white/10 bg-black/40 p-3 text-sm text-white/80"
                 >
                   {chatMessages.length === 0 && (
                     <p className="text-white/50">아직 메시지가 없습니다.</p>
