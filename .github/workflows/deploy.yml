@@ -1,0 +1,92 @@
+name: Deploy to EC2 with Docker
+
+on:
+  push:
+    branches: [ "dev" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Backend Image
+        run: |
+          docker build --platform linux/amd64 -t ${{ secrets.DOCKERHUB_USERNAME }}/cinema-backend:latest ./back/cinema
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/cinema-backend:latest
+
+      - name: Build and Push Frontend Image
+        run: |
+          docker build --no-cache --platform linux/amd64 \
+            --build-arg NEXT_PUBLIC_API_URL=http://${{ secrets.EC2_IP }}:8080 \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/cinema-frontend:latest ./front
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/cinema-frontend:latest
+
+      - name: Copy Config Files to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_IP }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.yml,deploy-ec2.sh"
+          target: "~/cinema"
+          strip_components: 0
+
+      - name: Execute Deployment Script
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_IP }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/cinema
+            # GitHub Secrets를 사용하여 .env 파일 동적 생성
+            # docker-compose.yml과 같은 위치에 .env 파일을 생성하여 docker-compose가 자동으로 인식하도록 함
+            cat > .env << EOF
+            # Database
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+            
+            # JWT & API Keys
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            TOSS_CLIENT_KEY=${{ secrets.TOSS_CLIENT_KEY }}
+            TOSS_SECRET_KEY=${{ secrets.TOSS_SECRET_KEY }}
+            TOSS_URL=${{ secrets.TOSS_URL }}
+            
+            # AWS
+            AWS_REGION=${{ secrets.AWS_REGION }}
+            AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
+            AWS_CLOUDFRONT_DOMAIN=${{ secrets.AWS_CLOUDFRONT_DOMAIN }}
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            
+            # CloudFront
+            CLOUDFRONT_DOMAIN=${{ secrets.CLOUDFRONT_DOMAIN }}
+            
+            # FFmpeg
+            FFMPEG_DOCKER_IMAGE=${{ secrets.FFMPEG_DOCKER_IMAGE }}
+            FFMPEG_WORK_DIR=${{ secrets.FFMPEG_WORK_DIR }}
+            FFMPEG_HLS_SEGMENT_SECONDS=${{ secrets.FFMPEG_HLS_SEGMENT_SECONDS }}
+            
+            # Encoding
+            ENCODING_POOL_SIZE=${{ secrets.ENCODING_POOL_SIZE }}
+            ENCODING_QUEUE=${{ secrets.ENCODING_QUEUE }}
+            
+            # Frontend
+            NEXT_PUBLIC_API_URL=http://${{ secrets.EC2_IP }}:8080
+            EOF
+            
+            # .env 파일 권한 설정
+            chmod 600 .env
+            
+            chmod +x deploy-ec2.sh
+            ./deploy-ec2.sh
+
