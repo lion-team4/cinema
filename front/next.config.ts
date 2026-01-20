@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
-const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const backendUrl =
+  process.env.INTERNAL_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8080";
 
 const nextConfig: NextConfig = {
   output: 'standalone', // Docker 이미지 크기 최적화를 위한 standalone 모드
