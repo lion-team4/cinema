@@ -17,13 +17,23 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // 순수 WebSocket (프론트엔드 SockJS 미사용 시)
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("http://localhost:3000", "http://127.0.0.1:3000");
-        
+                .setAllowedOriginPatterns(
+                        "http://localhost:3000/",
+                        "http://127.0.0.1:3000/",
+                        "http://13.124.18.8:3000/",
+                        "https://13.124.18.8:3000/"
+                );
+
         // SockJS fallback (Postman, 브라우저 호환성)
         registry.addEndpoint("/ws-sockjs")
-                .setAllowedOriginPatterns("http://localhost:3000", "http://127.0.0.1:3000")
+                .setAllowedOriginPatterns(
+                        "http://localhost:3000/",
+                        "http://127.0.0.1:3000/",
+                        "http://13.124.18.8:3000/",
+                        "https://13.124.18.8:3000/"
+                )
                 .withSockJS();
-        
+
         // 에러 핸들러 등록
         registry.setErrorHandler(stompErrorHandler);
     }
