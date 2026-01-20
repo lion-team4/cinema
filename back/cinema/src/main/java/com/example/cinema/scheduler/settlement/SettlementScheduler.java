@@ -28,9 +28,9 @@ public class SettlementScheduler {
     private final Job settlementJob;
     
 //     테스트용: 1분마다 실행
-//     @Scheduled(cron = "0 * * * * ?") // 매분 0초에 실행 (1분마다)
+     @Scheduled(cron = "0 * * * * ?") // 매분 0초에 실행 (1분마다)
     // 운영용: 매월 1일 00:00:00 실행
-     @Scheduled(cron = "0 0 0 1 * ?") // 매월 1일 00:00:00
+//     @Scheduled(cron = "0 0 0 1 * ?") // 매월 1일 00:00:00
     public void executeMonthlySettlement() {
         try {
             // 전월 기간 계산

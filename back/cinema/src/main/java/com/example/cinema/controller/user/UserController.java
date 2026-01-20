@@ -2,6 +2,7 @@ package com.example.cinema.controller.user;
 
 import com.example.cinema.config.common.CustomUserDetails;
 import com.example.cinema.dto.common.ApiResponse;
+import com.example.cinema.dto.theater.TheaterLogResponse;
 import com.example.cinema.dto.user.UserDeleteRequest;
 import com.example.cinema.dto.user.UserGetResponse;
 import com.example.cinema.dto.user.UserUpdateResponse;
@@ -14,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/users")
@@ -46,5 +49,13 @@ public class UserController {
         
         userService.deleteUser(userDetails.getUser().getUserId(), request.getPassword());
         return ResponseEntity.ok(ApiResponse.success("회원 탈퇴가 완료되었습니다."));
+    }
+
+    @Operation(summary = "시청 기록 조회", description = "로그인한 사용자의 시청 기록을 조회합니다.")
+    @GetMapping("/me/watch-history")
+    public ResponseEntity<ApiResponse<List<TheaterLogResponse>>> getWatchHistory(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<TheaterLogResponse> response = userService.getWatchHistory(userDetails.getUser().getUserId());
+        return ResponseEntity.ok(ApiResponse.success("시청 기록 조회 성공", response));
     }
 }

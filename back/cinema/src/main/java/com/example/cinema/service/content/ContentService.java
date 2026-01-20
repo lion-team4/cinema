@@ -13,6 +13,7 @@ import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.repository.content.ContentRepository;
 import com.example.cinema.repository.mediaAsset.MediaAssetRepository;
 import com.example.cinema.repository.user.UserRepository;
+import com.example.cinema.service.media.CloudFrontUrlService;
 import com.example.cinema.type.AssetType;
 import com.example.cinema.type.ContentStatus;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class ContentService {
     private final ContentRepository contentRepository;
     private final MediaAssetRepository mediaAssetRepository;
     private final UserRepository userRepository;
+    private final CloudFrontUrlService cloudFrontUrlService;
 
     //1차 컨텐츠 등록
     @Transactional
@@ -166,6 +168,21 @@ public class ContentService {
     public PageResponse<ContentSearchResponse> search(ContentSearchRequest request) {
         var page = contentRepository.searchContent(request);
 
-        return PageResponse.from(page.map(ContentSearchResponse::from));
+        return PageResponse.from(page.map(content -> {
+            String posterUrl = null;
+            if (content.getPoster() != null && content.getPoster().getObjectKey() != null) {
+                posterUrl = cloudFrontUrlService.toPublicUrl(content.getPoster().getObjectKey());
+            }
+            return ContentSearchResponse.from(content, posterUrl);
+        }));
+    }
+
+    @Transactional(readOnly = true)
+    public Content getContentDetail(Long contentId) {
+        Content content = getContent(contentId);
+        if (content.getStatus() != ContentStatus.PUBLISHED) {
+            throw new BusinessException("공개되지 않은 콘텐츠입니다.", ErrorCode.ACCESS_DENIED);
+        }
+        return content;
     }
 }

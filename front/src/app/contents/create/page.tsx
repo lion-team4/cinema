@@ -78,6 +78,18 @@ export default function ContentCreatePage() {
     setNotice('');
 
     try {
+      const unwrapPresign = (
+        response: { data: ApiResponse<{ uploadUrl: string; objectKey: string }> | { uploadUrl: string; objectKey: string } }
+      ) => {
+        const body = response.data as
+          | ApiResponse<{ uploadUrl: string; objectKey: string }>
+          | { uploadUrl: string; objectKey: string };
+        if (body && typeof body === 'object' && 'data' in body) {
+          return body.data;
+        }
+        return body;
+      };
+
       const fileName = file.name;
       const contentType = file.type;
 
@@ -94,7 +106,11 @@ export default function ContentCreatePage() {
           }
         );
 
-        const { uploadUrl: posterUploadUrl, objectKey: posterObjectKey } = posterPresign.data.data;
+        const posterData = unwrapPresign(posterPresign);
+        if (!posterData?.uploadUrl || !posterData?.objectKey) {
+          throw new Error('포스터 업로드 URL을 가져오지 못했습니다.');
+        }
+        const { uploadUrl: posterUploadUrl, objectKey: posterObjectKey } = posterData;
 
         await axios.put(posterUploadUrl, posterFile, {
           headers: { 'Content-Type': posterFile.type },
@@ -110,7 +126,7 @@ export default function ContentCreatePage() {
       }
 
       // 2. Get Presigned URL (Video)
-      const { data: presignData } = await api.post<ApiResponse<{ uploadUrl: string; objectKey: string }>>(
+      const presignResponse = await api.post<ApiResponse<{ uploadUrl: string; objectKey: string }>>(
         '/api/assets/presign',
         {
           fileName,
@@ -121,7 +137,11 @@ export default function ContentCreatePage() {
         }
       );
 
-      const { uploadUrl, objectKey } = presignData.data;
+      const presignData = unwrapPresign(presignResponse);
+      if (!presignData?.uploadUrl || !presignData?.objectKey) {
+        throw new Error('영상 업로드 URL을 가져오지 못했습니다.');
+      }
+      const { uploadUrl, objectKey } = presignData;
 
       // 3. Upload to S3 directly
       await axios.put(uploadUrl, file, {
@@ -142,7 +162,7 @@ export default function ContentCreatePage() {
       });
 
       alert('업로드가 완료되었습니다. 인코딩이 진행 중입니다.');
-      router.push(`/studio/contents/${contentId}/edit`);
+      router.push('/schedules/manage');
     } catch (err: any) {
       console.error('Upload failed', err);
       setError(err.response?.data?.message || '업로드에 실패했습니다. 다시 시도해주세요.');

@@ -1,13 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import { api } from '@/lib/api';
+import type { ApiResponse, SubscriptionResponse } from '@/types';
 
 export default function SiteHeader() {
   const router = useRouter();
   const { user, accessToken, logout } = useAuthStore();
+  const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
 
   const handleLogout = async () => {
     try {
@@ -22,17 +25,35 @@ export default function SiteHeader() {
 
   const showLoading = !user && !!accessToken;
 
+  useEffect(() => {
+    if (!user) {
+      setSubscription(null);
+      return;
+    }
+    const loadSubscription = async () => {
+      try {
+        const { data } = await api.get<ApiResponse<SubscriptionResponse>>('/users/subscriptions');
+        setSubscription(data.data ?? null);
+      } catch {
+        setSubscription(null);
+      }
+    };
+    loadSubscription();
+  }, [user]);
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur">
       <nav className="container mx-auto flex h-16 items-center justify-between px-6">
-        <Link href="/" className="text-2xl font-extrabold tracking-tight text-red-500">
-          방구석 영화관
+        <Link href="/" className="brand-title text-xl font-semibold tracking-[0.18em] text-white/90">
+          Your private cinema
         </Link>
         <div className="flex items-center gap-6 text-sm font-medium text-white/80">
           <Link href="/search" className="hover:text-white transition-colors">검색</Link>
-          <Link href="/contents/manage" className="hover:text-white transition-colors">내 콘텐츠</Link>
-          <Link href="/schedules/manage" className="hover:text-white transition-colors">상영 일정</Link>
-          <Link href="/subscription" className="hover:text-white transition-colors">구독</Link>
+          <Link href="/theaters" className="hover:text-white transition-colors">상영관</Link>
+          <Link href="/schedules/manage" className="hover:text-white transition-colors">스튜디오</Link>
+          {(!subscription || subscription.status !== 'ACTIVE') && (
+            <Link href="/subscription" className="hover:text-white transition-colors">구독</Link>
+          )}
           {showLoading ? (
             <span className="text-white/50">로그인 확인 중...</span>
           ) : user ? (

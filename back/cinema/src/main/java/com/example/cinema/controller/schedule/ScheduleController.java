@@ -51,6 +51,16 @@ public class ScheduleController {
     }
 
     /**
+     * 특정 상영 일정 상세 조회
+     */
+    @GetMapping("/{scheduleItemId}")
+    public ResponseEntity<ApiResponse<ScheduleItemResponse>> getScheduleItem(
+            @PathVariable Long scheduleItemId) {
+        ScheduleItemResponse response = scheduleService.getScheduleItemInfo(scheduleItemId);
+        return ResponseEntity.ok(ApiResponse.success("상영 일정 상세 조회 성공", response));
+    }
+
+    /**
      * 특정 날짜의 편성을 확정(Lock) 처리합니다.
      */
     @PutMapping("/{scheduleDayId}/confirm")

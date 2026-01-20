@@ -4,6 +4,7 @@ import com.example.cinema.config.common.CustomUserDetails;
 import com.example.cinema.dto.common.ApiResponse;
 import com.example.cinema.dto.common.PageResponse;
 import com.example.cinema.dto.content.*;
+import com.example.cinema.entity.Content;
 import com.example.cinema.service.content.ContentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Value;
 
 @RestController
 @RequestMapping("/contents")
@@ -18,6 +20,9 @@ import org.springframework.web.bind.annotation.*;
 public class ContentController {
 
     private final ContentService contentService;
+
+    @Value("${aws.cloudfront.domain}")
+    private String cfDomain;
 
     // 1차 등록
     @PostMapping
@@ -96,5 +101,13 @@ public class ContentController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ContentSearchResponse>>>search(@ModelAttribute ContentSearchRequest request) {
         return ResponseEntity.ok(ApiResponse.success("콘텐츠 검색 성공", contentService.search(request)));
+    }
+
+    // 콘텐츠 상세 조회 (공개 콘텐츠)
+    @GetMapping("/{contentId}")
+    public ResponseEntity<ApiResponse<ContentDetailResponse>> getDetail(@PathVariable Long contentId) {
+        Content content = contentService.getContentDetail(contentId);
+        ContentDetailResponse response = ContentDetailResponse.from(content, cfDomain);
+        return ResponseEntity.ok(ApiResponse.success("콘텐츠 상세 조회 성공", response));
     }
 }

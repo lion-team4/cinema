@@ -16,12 +16,20 @@ import java.util.Optional;
 @Repository
 public interface WatchHistoryRepository extends JpaRepository<WatchHistory, Long> {
 
-    Optional<WatchHistory> findByUserAndScheduleItem(User user,ScheduleItem scheduleItem);
+    /**
+     * 특정 사용자의 특정 스케줄 시청 기록 조회 (가장 최근 1건)
+     */
+    Optional<WatchHistory> findTopByUserAndScheduleItemOrderByCreatedAtDesc(User user, ScheduleItem scheduleItem);
 
     /**
      * 특정 사용자의 특정 스케줄 시청 기록 조회 (퇴장 안 한 기록)
      */
     Optional<WatchHistory> findByUserAndScheduleItemAndLeftAtIsNull(User user, ScheduleItem scheduleItem);
+
+    /**
+     * 특정 사용자의 특정 스케줄 시청 기록 조회 (퇴장 안 한 기록들)
+     */
+    List<WatchHistory> findAllByUserAndScheduleItemAndLeftAtIsNullOrderByCreatedAtDesc(User user, ScheduleItem scheduleItem);
 
     /**
      * 특정 사용자의 특정 스케줄 시청 기록 존재 여부 (퇴장 안 한 기록)
@@ -50,6 +58,9 @@ public interface WatchHistoryRepository extends JpaRepository<WatchHistory, Long
             "ORDER BY wh.createdAt ASC")
     List<WatchHistory> findUsableWatchHistories(@Param("user") User user, @Param("content") Content content, Pageable pageable);
 
-    boolean existsFindByUserAndScheduleItem(User user, ScheduleItem scheduleItem);
+    /**
+     * 특정 사용자의 특정 스케줄 시청 기록 존재 여부
+     */
+    boolean existsByUserAndScheduleItem(User user, ScheduleItem scheduleItem);
 
 }

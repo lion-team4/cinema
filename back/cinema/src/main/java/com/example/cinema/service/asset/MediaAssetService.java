@@ -29,7 +29,8 @@ public class MediaAssetService {
                                   String objectKey,
                                   String contentType,
                                   Visibility visibility,
-                                  HeadObjectResponse head) {
+                                  HeadObjectResponse head,
+                                  Long durationMs) {
 
         MediaAsset asset = MediaAsset.builder()
                 .owner(owner)
@@ -39,7 +40,7 @@ public class MediaAssetService {
                 .contentType(contentType)
                 .visibility(visibility)
                 .sizeBytes(head == null ? null : head.contentLength())
-                .durationMs(null)
+                .durationMs(durationMs)
                 .build();
 
         return mediaAssetRepository.save(asset);

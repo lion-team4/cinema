@@ -1,6 +1,6 @@
 package com.example.cinema.dto.content;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -30,7 +30,7 @@ public class ReviewCreateRequest {
     /**
      * 리뷰 대상 콘텐츠 ID
      */
-    @JsonProperty("content-id")
+    @JsonAlias({"contentId", "content-id"})
     @NotNull(message = "콘텐츠 ID는 필수입니다.")
     private Long contentId;
 

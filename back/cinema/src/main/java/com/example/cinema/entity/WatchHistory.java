@@ -84,9 +84,9 @@ public class WatchHistory extends BaseEntity {
 
         // 두 시간의 절대적인 차이를 구함
         Duration duration = Duration.between(enterAt, leftAt);
-        long minutes = Math.abs(duration.toMinutes());
+        long seconds = Math.abs(duration.toSeconds());
 
-        return minutes >= 5;
+        return seconds >= 5;
     }
 
 }

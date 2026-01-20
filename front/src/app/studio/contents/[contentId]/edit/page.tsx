@@ -33,9 +33,10 @@ export default function ContentEditPage() {
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
+  const [encodingStatus, setEncodingStatus] = useState<string | null>(null);
+  const [encodingError, setEncodingError] = useState<string | null>(null);
 
   const isAssetPending = detail?.videoSourceAssetId == null;
-  const hasAssets = detail?.videoSourceAssetId != null;
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -72,6 +73,33 @@ export default function ContentEditPage() {
     fetchDetail();
   }, [hasHydrated, params, router, user]);
 
+  useEffect(() => {
+    if (!detail?.contentId) return;
+    let active = true;
+
+    const fetchEncoding = async () => {
+      try {
+        const { data } = await api.get<ApiResponse<{ contentId: number; encodingStatus: string | null; encodingError: string | null }>>(
+          `/contents/${detail.contentId}/encoding-status`
+        );
+        if (!active) return;
+        setEncodingStatus(data.data?.encodingStatus ?? null);
+        setEncodingError(data.data?.encodingError ?? null);
+      } catch {
+        if (!active) return;
+        setEncodingStatus(null);
+        setEncodingError(null);
+      }
+    };
+
+    fetchEncoding();
+    const interval = window.setInterval(fetchEncoding, 8000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [detail?.contentId]);
+
   const refreshDetail = async () => {
     if (!detail) return;
     const { data } = await api.get<ApiResponse<ContentEditResponse>>(`/contents/${detail.contentId}/edit`);
@@ -101,6 +129,7 @@ export default function ContentEditPage() {
         status,
       });
       setNotice('콘텐츠 정보가 저장되었습니다.');
+      await refreshDetail();
     } catch (err: any) {
       setError(err.response?.data?.message || '콘텐츠 저장에 실패했습니다.');
     } finally {
@@ -205,33 +234,7 @@ export default function ContentEditPage() {
     }
   };
 
-  const handlePublish = async () => {
-    if (!detail) return;
-    if (!hasAssets) {
-      setError('영상 업로드가 완료된 콘텐츠만 공개할 수 있습니다.');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError('');
-      setNotice('');
-      await api.put(`/contents/${detail.contentId}`, {
-        title,
-        description,
-        posterAssetId: detail.posterAssetId,
-        videoSourceAssetId: detail.videoSourceAssetId,
-        videoHlsMasterAssetId: detail.videoHlsMasterAssetId,
-        status: 'PUBLISHED',
-      });
-      setStatus('PUBLISHED');
-      setNotice('공개 상태로 변경되었습니다.');
-    } catch (err: any) {
-      setError(err.response?.data?.message || '공개 처리에 실패했습니다.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  // 공개 상태는 저장 시 선택된 상태로 반영됩니다.
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-white">
@@ -259,6 +262,63 @@ export default function ContentEditPage() {
 
       {!loading && detail && (
         <div className="mt-8 space-y-6">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-lg font-semibold">콘텐츠 요약</h2>
+              <div className="mt-4 space-y-2 text-sm text-white/70">
+                <div className="flex items-center justify-between">
+                  <span>상태</span>
+                  <span className="rounded-full border border-white/20 px-2 py-0.5 text-xs text-white/80">
+                    {status}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>포스터</span>
+                  <span className="text-xs text-white/60">
+                    {detail.posterAssetId ? '업로드됨' : '없음'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>원본 영상</span>
+                  <span className="text-xs text-white/60">
+                    {detail.videoSourceAssetId ? '업로드됨' : '없음'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>HLS</span>
+                  <span className="text-xs text-white/60">
+                    {detail.videoHlsMasterAssetId ? '준비됨' : '대기'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-lg font-semibold">인코딩 상태</h2>
+              <div className="mt-4 space-y-2 text-sm text-white/70">
+                <div className="flex items-center justify-between">
+                  <span>상태</span>
+                  <span className="rounded-full border border-white/20 px-2 py-0.5 text-xs text-white/80">
+                    {encodingStatus ?? '알 수 없음'}
+                  </span>
+                </div>
+                {encodingError && (
+                  <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+                    {encodingError}
+                  </div>
+                )}
+                {encodingStatus === 'ENCODING' && (
+                  <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                    인코딩 진행 중입니다. 잠시 후 다시 확인하세요.
+                  </div>
+                )}
+                {encodingStatus === 'READY' && (
+                  <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+                    인코딩이 완료되었습니다.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
           <form
             onSubmit={handleSave}
             className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6"
@@ -288,11 +348,10 @@ export default function ContentEditPage() {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as ContentEditResponse['status'])}
-                className="w-full rounded-md border border-white/10 bg-white/5 px-4 py-2 text-white focus:ring-red-500 focus:border-red-500"
+                className="w-full rounded-md border border-white/10 bg-black px-4 py-2 text-white focus:ring-red-500 focus:border-red-500"
               >
-                <option value="PUBLISHED">공개</option>
-                <option value="DRAFT">임시 저장</option>
-                <option value="PRIVATE">비공개</option>
+                <option value="PUBLISHED" className="bg-black text-white">공개</option>
+                <option value="DRAFT" className="bg-black text-white">임시 저장</option>
               </select>
             </div>
 
@@ -374,14 +433,6 @@ export default function ContentEditPage() {
                 className="flex-1 rounded-md bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-500 disabled:bg-white/20 transition-colors"
               >
                 {saving ? '업로드 중...' : '2단계 업로드'}
-              </button>
-              <button
-                type="button"
-                onClick={handlePublish}
-                disabled={saving || !hasAssets}
-                className="flex-1 rounded-md border border-white/20 py-3 text-sm font-semibold text-white/80 hover:border-white/60 hover:text-white disabled:opacity-50 transition-colors"
-              >
-                공개로 전환
               </button>
             </div>
           </div>
