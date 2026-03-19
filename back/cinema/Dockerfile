@@ -16,7 +16,6 @@ RUN chmod +x gradlew && \
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Docker CLI 설치 (ffmpeg Docker 컨테이너 실행용)
 RUN apk add --no-cache docker-cli
 
 COPY --from=builder /app/build/libs/app.jar .

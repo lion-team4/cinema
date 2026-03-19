@@ -41,7 +41,7 @@ jwt:
 
 ffmpeg:
   mode: ${FFMPEG_MODE:docker}
-  docker_image: ${FFMPEG_DOCKER_IMAGE:jrottenberg/ffmpeg:6.1-alpine}
+
   work_dir: ${FFMPEG_WORK_DIR:/tmp/cinema-work}
   hls_segment_seconds: ${FFMPEG_HLS_SEGMENT_SECONDS:6}
 
